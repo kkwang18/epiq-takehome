@@ -10,6 +10,7 @@ from content_intake.cli.query_cmd import (
 from content_intake.cli.lifecycle_cmd import (
     add_up_parser, run_up, add_down_parser, run_down, add_reset_parser, run_reset,
 )
+from content_intake.cli.kill_worker_cmd import add_kill_worker_parser, run_kill_worker
 
 
 def main(argv=None) -> int:
@@ -25,6 +26,7 @@ def main(argv=None) -> int:
     add_up_parser(subparsers)
     add_down_parser(subparsers)
     add_reset_parser(subparsers)
+    add_kill_worker_parser(subparsers)
     args = parser.parse_args(argv)
 
     if args.command == "version":
@@ -48,6 +50,8 @@ def main(argv=None) -> int:
         return run_down(args)
     if args.command == "reset":
         return run_reset(args)
+    if args.command == "kill-worker":
+        return run_kill_worker(args)
 
     parser.print_help()
     return 1
