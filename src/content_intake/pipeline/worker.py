@@ -95,3 +95,42 @@ def release_slot(conn, slot_id: int, worker_id: str) -> None:
         (slot_id, worker_id),
     )
     conn.commit()
+
+
+def start_attempt(conn, item_id: str, tenant: str, worker_id: str, slot_id: int) -> tuple[str, int]:
+    row = conn.execute(
+        "SELECT COALESCE(MAX(attempt_no), 0) + 1 AS n FROM item_attempts WHERE item_id = %s", (item_id,)
+    ).fetchone()
+    attempt_no = row["n"]
+    attempt_id = str(uuid.uuid4())
+    conn.execute(
+        """
+        INSERT INTO item_attempts (attempt_id, item_id, tenant, attempt_no, started_at, worker_id, slot_id)
+        VALUES (%s, %s, %s, %s, now(), %s, %s)
+        """,
+        (attempt_id, item_id, tenant, attempt_no, worker_id, slot_id),
+    )
+    conn.commit()
+    return attempt_id, attempt_no
+
+
+def complete_attempt(conn, attempt_id: str, http_status: int | None, outcome: str) -> None:
+    conn.execute(
+        "UPDATE item_attempts SET completed_at = now(), http_status = %s, outcome = %s WHERE attempt_id = %s",
+        (http_status, outcome, attempt_id),
+    )
+    conn.commit()
+
+
+def find_completed_success(conn, item_id: str) -> dict | None:
+    row = conn.execute(
+        "SELECT * FROM item_attempts WHERE item_id = %s AND outcome = 'success' AND completed_at IS NOT NULL "
+        "ORDER BY attempt_no DESC LIMIT 1",
+        (item_id,),
+    ).fetchone()
+    if row is not None:
+        # psycopg3 loads uuid columns as uuid.UUID objects; normalize to str so
+        # callers (and equality checks against str ids) see the same id type
+        # that's used everywhere else in this codebase.
+        row = {k: (str(v) if isinstance(v, uuid.UUID) else v) for k, v in row.items()}
+    return row
