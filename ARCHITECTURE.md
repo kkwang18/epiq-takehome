@@ -1,7 +1,7 @@
 # Architecture
 
 Current as of M1 design. Kept up to date through M2 (scenario runner, fault injection, and the
-M2-specific decisions D-05–D-07 will extend this doc, not replace it).
+still-open D-06/D-07 will extend this doc, not replace it).
 
 ## Components
 
@@ -73,10 +73,22 @@ own `WHERE` clause already covers expired leases. No reaper process, no supervis
 memory between the four workers: Postgres is the only thing they share, and it already
 serializes the claim correctly under `SKIP LOCKED`.
 
-Default item lease TTL: 5 seconds, renewed (or released on terminal write) well before expiry
-during normal processing. Chosen to comfortably exceed one attempt's worst-case duration (stub
-latency + HTTP timeout, finalized under D-05) while still leaving room inside the 10-second
-recovery bound for detection + re-claim + reprocessing.
+Item lease TTL: 5 seconds. Processing one item can span several stub attempts with backoff
+(D-05) and easily exceed one lease window, so the worker runs a background thread that renews
+the lease every 2 seconds while work continues:
+
+```sql
+UPDATE items SET leased_until = now() + interval '5 seconds'
+WHERE item_id = $1 AND leased_by = $2 AND state = 'in_progress';
+```
+
+A renewal that affects 0 rows means this worker's lease was already stolen — the thread flips an
+in-process flag the main loop checks between steps, so the worker abandons this item and moves
+on rather than finishing work it no longer owns. That flag is a latency optimization, not the
+correctness guarantee: the guarantee is that renewal *and* the eventual terminal write both
+carry `WHERE leased_by = $worker_id`, so a stale worker's writes simply match zero rows once
+someone else holds the lease — it can never resurrect a stolen item or clobber the new owner's
+result, flag or no flag.
 
 **Capacity gate (D-08).** The stub allows only `in_flight_capacity` (default 2) concurrent calls,
 enforced across all four workers with `over_capacity_calls` required to stay at exactly zero.
@@ -89,19 +101,41 @@ becomes claimable the same way an abandoned item does.
 
 ## Per-item processing
 
-1. Claim item (above).
+1. Claim item (above). Before doing anything else, check `item_attempts` for this item for an
+   already-completed *successful* attempt (possible if a previous holder got a 200 back but died
+   before writing `items.state`) — if found, finalize directly from that record instead of
+   calling the stub again.
 2. Empty bytes → terminal `empty_content`. `.json` failing `json.loads` → terminal
    `decode_failed`. Both detected before anything touches the stub or `stub_call_slots`.
 3. Extract text for `.txt`/`.json`/`.csv`. `.png` gets no extracted text but still proceeds to
    annotation — extractability is not grounds to skip the call.
 4. Look up `annotations_cache` for `(tenant, sha256)` where `tenant` is read from the claimed
    `items` row (D-10 — never from anywhere else, since workers bypass the API's tenant scoping
-   entirely). Hit → reuse, terminal `succeeded`, no HTTP call. Miss → claim a capacity slot,
-   insert an `item_attempts` row *before* sending the request (D-09), call the stub, update that
-   row with the outcome, release the slot, write the annotation to both `items` and
-   `annotations_cache` on success.
-5. Terminal state: `succeeded`, or (retry policy pending D-05) `annotation_failed` /
-   `annotation_invalid_request`.
+   entirely). Hit → reuse, terminal `succeeded`, no HTTP call.
+5. Miss → retry loop, up to 5 attempts (D-05), 2s HTTP timeout, backoff `200ms × 2^(attempt-1)`
+   capped at 2s with ±20% jitter. Each attempt:
+   - Claim a `stub_call_slots` row (D-08).
+   - **Commit** an `item_attempts` insert (`started_at`, `worker_id`, `slot_id`, `attempt_no`) —
+     this transaction lands *before* the HTTP call is sent.
+   - `POST /v1/annotate`.
+   - **Commit** an `item_attempts` update (`completed_at`, `http_status`, `outcome`) — this
+     transaction lands after the call returns (or the timeout fires).
+   - Release the slot in a `finally`.
+   - `200` → write the annotation to `items` and `annotations_cache`, terminal `succeeded`.
+     `400` → terminal `annotation_invalid_request` immediately, no further attempts.
+     `500`/`429`/timeout → retryable; loop again if attempts remain, otherwise terminal
+     `annotation_failed`.
+
+**Crash windows against this sequence** (all writes above are conditioned on
+`leased_by = $worker_id`, so a stale worker can never complete a stolen item regardless of which
+window it dies in):
+
+| Worker dies... | State left behind | What happens |
+|---|---|---|
+| before the `item_attempts` insert commits | No attempt row for this try | Lease expires, reclaimed, retried fresh. No billing occurred, and nothing suggests otherwise. |
+| after the insert commits, whether before the request was even sent, mid-flight, or after a response arrived but before the update commits | Row with `completed_at IS NULL` | Durable, queryable evidence of a *possibly*-billed, unrecorded attempt (D-09). Reconciliation reads this as "cannot rule out billing," never as confirmation — the row can't distinguish "died before sending" from "died waiting on the response," and the conservative reading is the safe one. This is the case M2 measures and explains, not one it can prevent. |
+| after the update commits, before the slot is released | Attempt row complete; `stub_call_slots` row still marked held | The slot's own short lease expires and self-heals (D-08) — no special handling needed. |
+| after a successful outcome is recorded, before `items.state` is written | Attempt row shows `outcome='success'`; item still `in_progress` | Next claimant finalizes from the completed `item_attempts` row (step 1 above) instead of re-calling the stub. |
 
 ## Data model (Postgres)
 
@@ -109,13 +143,14 @@ becomes claimable the same way an abandoned item does.
 - `items(item_id PK, run_id FK, tenant, source_path, extension, bytes, sha256, role, duplicate_of, edge_case, expects_annotation, state, leased_by, leased_until, reason JSONB, extracted_text TEXT NULL, annotation JSONB NULL, created_at, updated_at)`
 - `annotations_cache(tenant, sha256, annotation JSONB, created_at, PRIMARY KEY(tenant, sha256))`
 - `stub_call_slots(slot_id PK, held_by TEXT NULL, lease_until TIMESTAMPTZ NULL)` — row count = `in_flight_capacity`
-- `item_attempts(attempt_id PK, item_id FK, tenant, attempt_no, started_at, worker_id, slot_id, completed_at NULL, http_status NULL, outcome NULL)` — append-only (D-09)
+- `item_attempts(attempt_id PK, item_id FK, tenant, attempt_no, started_at, worker_id, slot_id, completed_at NULL, http_status NULL, outcome NULL, UNIQUE(item_id, attempt_no))` — insert commits before the stub call, update commits after (D-09)
 
 Query surface (`item`/`items`/`status`) reads these tables directly through the Pipeline API —
 no separate read path, no cache layer beyond `annotations_cache` itself (D-03).
 
 ## Deferred (M2)
 
-Retry/backoff policy (D-05), secondary thresholds (D-06), and environment-fidelity discussion
-(D-07) are recorded as open in `DECISIONS.md` and will be resolved and reflected here once the
-M2 scenario harness is being built.
+Secondary performance thresholds (D-06) and environment-fidelity discussion (D-07) are recorded
+as open in `DECISIONS.md` and will be resolved and reflected here once the M2 scenario harness is
+being built. (D-05, the stub-boundary failure policy, is decided above — only its validation
+under real M2 load is deferred.)
