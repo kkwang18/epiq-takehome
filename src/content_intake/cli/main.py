@@ -7,6 +7,9 @@ from content_intake.cli.query_cmd import (
     add_submit_parser, run_submit, add_status_parser, run_status,
     add_item_parser, run_item, add_items_parser, run_items,
 )
+from content_intake.cli.lifecycle_cmd import (
+    add_up_parser, run_up, add_down_parser, run_down, add_reset_parser, run_reset,
+)
 
 
 def main(argv=None) -> int:
@@ -19,6 +22,9 @@ def main(argv=None) -> int:
     add_status_parser(subparsers)
     add_item_parser(subparsers)
     add_items_parser(subparsers)
+    add_up_parser(subparsers)
+    add_down_parser(subparsers)
+    add_reset_parser(subparsers)
     args = parser.parse_args(argv)
 
     if args.command == "version":
@@ -36,6 +42,12 @@ def main(argv=None) -> int:
         return run_item(args)
     if args.command == "items":
         return run_items(args)
+    if args.command == "up":
+        return run_up(args)
+    if args.command == "down":
+        return run_down(args)
+    if args.command == "reset":
+        return run_reset(args)
 
     parser.print_help()
     return 1
