@@ -1066,7 +1066,7 @@ git commit -m "Wire generator and --verify into ./intake corpus"
 - Test: `tests/test_stub_state.py`
 
 **Interfaces:**
-- Produces: class `StubState(latency_mode, latency_ms, latency_jitter_min_ms, latency_jitter_max_ms, latency_seed, failure_every_n, failure_status, in_flight_capacity)` with methods `next_latency_ms() -> float`, `enter_call() -> bool` (returns False if over capacity, else increments in-flight and returns True), `exit_call() -> None`, `should_fail_this_billed_call() -> bool` (call once per billed call — advances the Nth-failure schedule), `bill() -> None`, `record_server_error() -> None`, `record_over_capacity() -> None`, `stats() -> dict`, `reset(patch: dict | None) -> None`, `annotate(content: bytes) -> dict`.
+- Produces: class `StubState(latency_mode, latency_ms, latency_jitter_min_ms, latency_jitter_max_ms, latency_seed, failure_every_n, failure_status, in_flight_capacity)` with methods `next_latency_ms() -> float`, `enter_call() -> bool` (returns False if over capacity, else increments in-flight and returns True), `exit_call() -> None`, `should_fail_this_billed_call() -> bool` (call once per billed call — advances the Nth-failure schedule; kept for single-threaded/test use), `bill() -> None` (kept for single-threaded/test use), `bill_and_check_failure() -> bool` (atomic bill+check pair — **the HTTP handler in Task 9 must call this, not the two separately**, since two independently-locked calls are not atomic as a pair under concurrent requests and can corrupt the failure count), `record_server_error() -> None`, `record_over_capacity() -> None`, `stats() -> dict`, `reset(patch: dict | None) -> None`, `annotate(content: bytes) -> dict`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1173,6 +1173,41 @@ def test_reset_applies_partial_config_patch():
     s.reset({"failure_every_n": 1})
     s.bill()
     assert s.should_fail_this_billed_call() is True
+
+
+def test_bill_and_check_failure_matches_sequential_bill_and_check():
+    s = make_state(failure_every_n=3)
+    results = []
+    for _ in range(9):
+        results.append(s.bill_and_check_failure())
+    assert results == [False, False, True, False, False, True, False, False, True]
+
+
+def test_bill_and_check_failure_exact_count_under_concurrency():
+    # The bug this guards against: bill() + should_fail_this_billed_call() as two
+    # separately-locked calls can let concurrent threads interleave between them,
+    # corrupting the failure COUNT (not just which item fails). bill_and_check_failure()
+    # must not have this race: with failure_every_n=2 and 20 concurrent calls, exactly
+    # 10 must be flagged as failures, every time, regardless of thread interleaving.
+    import threading
+
+    s = make_state(failure_every_n=2)
+    results = []
+    lock = threading.Lock()
+
+    def call():
+        result = s.bill_and_check_failure()
+        with lock:
+            results.append(result)
+
+    threads = [threading.Thread(target=call) for _ in range(20)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert len(results) == 20
+    assert sum(1 for r in results if r) == 10
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -1257,6 +1292,20 @@ class StubState:
                 return False
             return self._billed_call_index % self.failure_every_n == 0
 
+    def bill_and_check_failure(self) -> bool:
+        """Atomic bill()+should_fail_this_billed_call() pair. The HTTP handler (Task 9)
+        must use this instead of calling the two separately — under concurrent requests,
+        two independently-locked calls are not atomic as a pair, so one thread's check can
+        read an index another thread's bill() already advanced past, corrupting the
+        1-in-N failure count (not just which item fails, which EXT-REQ-2 permits, but the
+        count, which it does not)."""
+        with self._lock:
+            self._billed_calls += 1
+            self._billed_call_index += 1
+            if self.failure_every_n <= 0:
+                return False
+            return self._billed_call_index % self.failure_every_n == 0
+
     def record_server_error(self) -> None:
         with self._lock:
             self._server_error_calls += 1
@@ -1295,7 +1344,7 @@ class StubState:
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/test_stub_state.py -v`
-Expected: 11 passed
+Expected: 13 passed
 
 - [ ] **Step 5: Commit**
 
@@ -1474,11 +1523,11 @@ def create_app(state: StubState) -> FastAPI:
         try:
             delay_ms = state.next_latency_ms()
             time.sleep(delay_ms / 1000.0)
-            state.bill()
+            should_fail = state.bill_and_check_failure()
             if not admitted:
                 state.record_over_capacity()
                 return JSONResponse(status_code=429, content={"error": {"code": "over_capacity"}})
-            if state.should_fail_this_billed_call():
+            if should_fail:
                 state.record_server_error()
                 return JSONResponse(status_code=state.failure_status, content={"error": {"code": "server_error"}})
             return state.annotate(content)
