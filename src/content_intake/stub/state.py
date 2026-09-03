@@ -72,6 +72,20 @@ class StubState:
                 return False
             return self._billed_call_index % self.failure_every_n == 0
 
+    def bill_and_check_failure(self) -> bool:
+        """Atomic bill()+should_fail_this_billed_call() pair. The HTTP handler (Task 9)
+        must use this instead of calling the two separately — under concurrent requests,
+        two independently-locked calls are not atomic as a pair, so one thread's check can
+        read an index another thread's bill() already advanced past, corrupting the
+        1-in-N failure count (not just which item fails, which EXT-REQ-2 permits, but the
+        count, which it does not)."""
+        with self._lock:
+            self._billed_calls += 1
+            self._billed_call_index += 1
+            if self.failure_every_n <= 0:
+                return False
+            return self._billed_call_index % self.failure_every_n == 0
+
     def record_server_error(self) -> None:
         with self._lock:
             self._server_error_calls += 1

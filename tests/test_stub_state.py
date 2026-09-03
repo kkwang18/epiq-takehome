@@ -100,3 +100,38 @@ def test_reset_applies_partial_config_patch():
     s.reset({"failure_every_n": 1})
     s.bill()
     assert s.should_fail_this_billed_call() is True
+
+
+def test_bill_and_check_failure_matches_sequential_bill_and_check():
+    s = make_state(failure_every_n=3)
+    results = []
+    for _ in range(9):
+        results.append(s.bill_and_check_failure())
+    assert results == [False, False, True, False, False, True, False, False, True]
+
+
+def test_bill_and_check_failure_exact_count_under_concurrency():
+    # The bug this guards against: bill() + should_fail_this_billed_call() as two
+    # separately-locked calls can let concurrent threads interleave between them,
+    # corrupting the failure COUNT (not just which item fails). bill_and_check_failure()
+    # must not have this race: with failure_every_n=2 and 20 concurrent calls, exactly
+    # 10 must be flagged as failures, every time, regardless of thread interleaving.
+    import threading
+
+    s = make_state(failure_every_n=2)
+    results = []
+    lock = threading.Lock()
+
+    def call():
+        result = s.bill_and_check_failure()
+        with lock:
+            results.append(result)
+
+    threads = [threading.Thread(target=call) for _ in range(20)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert len(results) == 20
+    assert sum(1 for r in results if r) == 10
