@@ -3,6 +3,10 @@ import sys
 
 from content_intake.cli.corpus_cmd import add_corpus_parser, run_corpus
 from content_intake.cli.stub_cmd import add_stub_parser, run_stub
+from content_intake.cli.query_cmd import (
+    add_submit_parser, run_submit, add_status_parser, run_status,
+    add_item_parser, run_item, add_items_parser, run_items,
+)
 
 
 def main(argv=None) -> int:
@@ -11,6 +15,10 @@ def main(argv=None) -> int:
     subparsers.add_parser("version")
     add_corpus_parser(subparsers)
     add_stub_parser(subparsers)
+    add_submit_parser(subparsers)
+    add_status_parser(subparsers)
+    add_item_parser(subparsers)
+    add_items_parser(subparsers)
     args = parser.parse_args(argv)
 
     if args.command == "version":
@@ -20,6 +28,14 @@ def main(argv=None) -> int:
         return run_corpus(args)
     if args.command == "stub":
         return run_stub(args)
+    if args.command == "submit":
+        return run_submit(args)
+    if args.command == "status":
+        return run_status(args)
+    if args.command == "item":
+        return run_item(args)
+    if args.command == "items":
+        return run_items(args)
 
     parser.print_help()
     return 1
