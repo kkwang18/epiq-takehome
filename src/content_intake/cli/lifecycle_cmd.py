@@ -16,6 +16,7 @@ from content_intake.pipeline.db import connect, apply_schema, ensure_slots
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 STATE_FILE = REPO_ROOT / ".intake_state.json"
+LOG_DIR = REPO_ROOT / ".intake_logs"
 
 
 def _read_state() -> dict | None:
@@ -89,17 +90,31 @@ def run_up(args: argparse.Namespace) -> int:
     conn.close()
 
     env = {**os.environ, "STUB_IN_FLIGHT_CAPACITY": str(config.IN_FLIGHT_CAPACITY)}
+    LOG_DIR.mkdir(exist_ok=True)
+
+    # These processes outlive this `up` invocation (they're detached and left running).
+    # They must NOT inherit this process's stdout/stderr: when `up` itself is invoked
+    # through subprocess.run(..., capture_output=True) (e.g. by the acceptance test's
+    # CLI wrapper), the pipe fds created for that capture would be inherited here, and
+    # the long-lived children would hold the write end open forever. That leaves the
+    # calling process's communicate()/wait() blocked reading for EOF that never comes,
+    # even after this `up` process has itself exited -- a real deadlock, not just a
+    # missing debug log. Redirect each to its own log file instead.
+    stub_log = open(LOG_DIR / "stub.log", "w")
     stub_proc = subprocess.Popen(
         [sys.executable, "-m", "content_intake.stub.run"],
         cwd=REPO_ROOT, env={**env, "PYTHONPATH": str(REPO_ROOT / "src")},
+        stdout=stub_log, stderr=subprocess.STDOUT,
     )
     if not _wait_for(lambda: _http_ok(f"{config.STUB_BASE_URL}/healthz")):
         print("Stub did not become healthy in time", file=sys.stderr)
         return 1
 
+    api_log = open(LOG_DIR / "api.log", "w")
     api_proc = subprocess.Popen(
         [sys.executable, "-m", "content_intake.pipeline.run_api"],
         cwd=REPO_ROOT, env={**env, "PYTHONPATH": str(REPO_ROOT / "src")},
+        stdout=api_log, stderr=subprocess.STDOUT,
     )
     if not _wait_for(lambda: _http_ok(f"{config.API_BASE_URL}/v1/runs/00000000-0000-0000-0000-000000000000/status", accept_404=True)):
         print("Pipeline API did not become healthy in time", file=sys.stderr)
@@ -107,9 +122,11 @@ def run_up(args: argparse.Namespace) -> int:
 
     workers = []
     for i in range(args.workers):
+        worker_log = open(LOG_DIR / f"worker-{i}.log", "w")
         proc = subprocess.Popen(
             [sys.executable, "-m", "content_intake.pipeline.worker", str(i)],
             cwd=REPO_ROOT, env={**env, "PYTHONPATH": str(REPO_ROOT / "src")},
+            stdout=worker_log, stderr=subprocess.STDOUT,
         )
         workers.append({"index": i, "pid": proc.pid, "alive": True})
 
