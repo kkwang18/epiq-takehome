@@ -1,6 +1,6 @@
 # src/content_intake/stub/app.py
+import asyncio
 import base64
-import time
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -46,7 +46,7 @@ def create_app(state: StubState) -> FastAPI:
         admitted = state.enter_call()
         try:
             delay_ms = state.next_latency_ms()
-            time.sleep(delay_ms / 1000.0)
+            await asyncio.sleep(delay_ms / 1000.0)
             should_fail = state.bill_and_check_failure()
             if not admitted:
                 state.record_over_capacity()
