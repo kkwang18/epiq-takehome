@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 import httpx
+import psycopg
 
 from content_intake.common import config
 from content_intake.pipeline.db import connect, apply_schema, ensure_slots
@@ -44,6 +45,24 @@ def _wait_for(check, timeout=30.0, interval=0.5):
     return False
 
 
+def _connect_with_retry(timeout: float = 10.0, interval: float = 0.5):
+    # A fresh Postgres volume (every `up` after a `down`, since `down` removes the
+    # volume) goes through initdb -> shutdown -> restart-to-apply-config on the
+    # official image. `pg_isready` can report ready in the brief window between the
+    # first startup and that restart, so a bare connect() right after pg_isready
+    # can still hit "server closed the connection unexpectedly". Retry the actual
+    # connection, not just the readiness probe.
+    start = time.monotonic()
+    last_error: Exception | None = None
+    while time.monotonic() - start < timeout:
+        try:
+            return connect()
+        except psycopg.OperationalError as e:
+            last_error = e
+            time.sleep(interval)
+    raise last_error
+
+
 def add_up_parser(subparsers) -> None:
     p = subparsers.add_parser("up")
     p.add_argument("--workers", type=int, default=4)
@@ -64,7 +83,7 @@ def run_up(args: argparse.Namespace) -> int:
         print("Postgres did not become ready in time", file=sys.stderr)
         return 1
 
-    conn = connect()
+    conn = _connect_with_retry()
     apply_schema(conn)
     ensure_slots(conn, config.IN_FLIGHT_CAPACITY)
     conn.close()
