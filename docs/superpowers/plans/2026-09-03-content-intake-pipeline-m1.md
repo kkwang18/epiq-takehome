@@ -2632,6 +2632,34 @@ def test_exhausted_retries_lands_in_annotation_failed(db_conn, tmp_path, monkeyp
     assert row["state"] == "annotation_failed"
     attempts = db_conn.execute("SELECT COUNT(*) AS n FROM item_attempts WHERE item_id = %s", (item_id,)).fetchone()
     assert attempts["n"] == 5
+
+
+def test_start_attempt_race_is_handled_without_crashing(db_conn, tmp_path, monkeypatch):
+    # Simulates the D-09 backstop: a stale worker (lease already stolen) reaches
+    # start_attempt() concurrently with the new owner and loses the UNIQUE(item_id,
+    # attempt_no) race. process_item must not crash or leave the slot held — it should
+    # roll back and abandon the item, since the current owner is already handling it.
+    import psycopg
+
+    import content_intake.pipeline.worker as worker_mod
+
+    ensure_slots(db_conn, 2)
+    item_id = _insert_item(db_conn, tmp_path)
+    claimed = claim_item(db_conn, "worker-0", lease_seconds=5)
+
+    def fake_start_attempt(conn, item_id, tenant, worker_id, slot_id):
+        raise psycopg.errors.UniqueViolation("simulated race: attempt_no already taken")
+
+    monkeypatch.setattr(worker_mod, "start_attempt", fake_start_attempt)
+
+    def handler(request):
+        raise AssertionError("stub must not be called when start_attempt loses the race")
+
+    process_item(db_conn, connect, claimed, tmp_path,
+                 httpx.Client(transport=httpx.MockTransport(handler)), "http://stub", "worker-0")
+
+    slots = db_conn.execute("SELECT held_by FROM stub_call_slots ORDER BY slot_id").fetchall()
+    assert all(s["held_by"] is None for s in slots)
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -2647,6 +2675,8 @@ import json
 import random
 import time
 from pathlib import Path
+
+import psycopg
 
 from content_intake.common import config
 from content_intake.pipeline.extraction import detect_edge_case, extract_text
@@ -2729,24 +2759,33 @@ def process_item(conn, connect_fn, item: dict, corpus_files_dir: Path, stub_clie
                 slot_id = claim_slot(conn, worker_id, lease_seconds=config.LEASE_SECONDS)
                 if slot_id is None:
                     time.sleep(0.05 + random.uniform(0, 0.05))
-            attempt_id, _ = start_attempt(conn, item_id, tenant, worker_id, slot_id)
-            result = call_annotate(stub_client, stub_base_url, data, timeout=HTTP_TIMEOUT_SECONDS)
-            outcome = None
-            if result.error is not None:
-                outcome = result.error
-                last_status = None
-            else:
-                last_status = result.status_code
-                if result.status_code == 200:
-                    outcome = "success"
-                elif result.status_code == 400:
-                    outcome = "invalid_request"
-                elif result.status_code in RETRYABLE_STATUSES:
-                    outcome = "server_error" if result.status_code == 500 else "over_capacity"
+            try:
+                try:
+                    attempt_id, _ = start_attempt(conn, item_id, tenant, worker_id, slot_id)
+                except psycopg.errors.UniqueViolation:
+                    # UNIQUE(item_id, attempt_no) backstop (D-09): this worker's lease was
+                    # already stolen and the new owner recorded this attempt_no first.
+                    # Abandon the item — the current owner is already handling it.
+                    conn.rollback()
+                    return
+                result = call_annotate(stub_client, stub_base_url, data, timeout=HTTP_TIMEOUT_SECONDS)
+                outcome = None
+                if result.error is not None:
+                    outcome = result.error
+                    last_status = None
                 else:
-                    outcome = "unexpected_status"
-            complete_attempt(conn, attempt_id, last_status, outcome)
-            release_slot(conn, slot_id, worker_id)
+                    last_status = result.status_code
+                    if result.status_code == 200:
+                        outcome = "success"
+                    elif result.status_code == 400:
+                        outcome = "invalid_request"
+                    elif result.status_code in RETRYABLE_STATUSES:
+                        outcome = "server_error" if result.status_code == 500 else "over_capacity"
+                    else:
+                        outcome = "unexpected_status"
+                complete_attempt(conn, attempt_id, last_status, outcome)
+            finally:
+                release_slot(conn, slot_id, worker_id)
 
             if outcome == "success":
                 annotation = result.body
@@ -2775,7 +2814,7 @@ def process_item(conn, connect_fn, item: dict, corpus_files_dir: Path, stub_clie
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/test_worker_process_item.py -v`
-Expected: 7 passed
+Expected: 8 passed
 
 - [ ] **Step 5: Commit**
 
