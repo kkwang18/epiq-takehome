@@ -1,1 +1,7 @@
 .worktrees/
+.venv/
+__pycache__/
+*.pyc
+.intake_state.json
+/tmp_corpus/
+.pytest_cache/
