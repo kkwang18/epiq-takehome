@@ -67,3 +67,31 @@ class LeaseRenewer:
                     return
         finally:
             conn.close()
+
+
+def claim_slot(conn, worker_id: str, lease_seconds: int) -> int | None:
+    row = conn.execute(
+        """
+        UPDATE stub_call_slots
+        SET held_by = %(worker_id)s, lease_until = now() + %(s)s * interval '1 second'
+        WHERE slot_id = (
+            SELECT slot_id FROM stub_call_slots
+            WHERE held_by IS NULL OR lease_until < now()
+            ORDER BY slot_id
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+        )
+        RETURNING slot_id
+        """,
+        {"worker_id": worker_id, "s": lease_seconds},
+    ).fetchone()
+    conn.commit()
+    return row["slot_id"] if row else None
+
+
+def release_slot(conn, slot_id: int, worker_id: str) -> None:
+    conn.execute(
+        "UPDATE stub_call_slots SET held_by = NULL, lease_until = NULL WHERE slot_id = %s AND held_by = %s",
+        (slot_id, worker_id),
+    )
+    conn.commit()
