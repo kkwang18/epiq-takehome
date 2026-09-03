@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS runs (
     run_id UUID PRIMARY KEY,
     corpus_id TEXT NOT NULL,
     tenant TEXT NOT NULL,
+    corpus_dir TEXT NOT NULL,
     submitted_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

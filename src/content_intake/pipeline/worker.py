@@ -6,9 +6,11 @@ import time
 import uuid
 from pathlib import Path
 
+import httpx
 import psycopg
 
 from content_intake.common import config
+from content_intake.pipeline.db import connect
 from content_intake.pipeline.extraction import detect_edge_case, extract_text
 from content_intake.pipeline.stub_client import call_annotate
 
@@ -272,3 +274,27 @@ def process_item(conn, connect_fn, item: dict, corpus_files_dir: Path, stub_clie
                   reason={"code": "annotation_failed", "attempts": MAX_ATTEMPTS, "last_status": last_status})
     finally:
         renewer.stop()
+
+
+def run_worker(index: int) -> None:
+    worker_id = f"worker-{index}"
+    stub_client = httpx.Client()
+    print(f"[{worker_id}] starting", flush=True)
+    while True:
+        conn = connect()
+        try:
+            item = claim_item(conn, worker_id, lease_seconds=config.LEASE_SECONDS)
+            if item is None:
+                conn.close()
+                time.sleep(0.5)
+                continue
+            run = conn.execute("SELECT corpus_dir FROM runs WHERE run_id = %s", (item["run_id"],)).fetchone()
+            corpus_files_dir = Path(run["corpus_dir"]) / "files"
+            process_item(conn, connect, item, corpus_files_dir, stub_client, config.STUB_BASE_URL, worker_id)
+        finally:
+            conn.close()
+
+
+if __name__ == "__main__":
+    import sys
+    run_worker(int(sys.argv[1]) if len(sys.argv) > 1 else 0)

@@ -6,10 +6,13 @@ from content_intake.pipeline.db import connect
 from content_intake.pipeline.worker import claim_item, LeaseRenewer
 
 
-def _insert_run_and_item(conn, tenant="tenant-a"):
+def _insert_run_and_item(conn, tmp_path, tenant="tenant-a"):
     run_id = str(uuid.uuid4())
     item_id = str(uuid.uuid4())
-    conn.execute("INSERT INTO runs (run_id, corpus_id, tenant) VALUES (%s, %s, %s)", (run_id, "c1", tenant))
+    conn.execute(
+        "INSERT INTO runs (run_id, corpus_id, tenant, corpus_dir) VALUES (%s, %s, %s, %s)",
+        (run_id, "c1", tenant, str(tmp_path)),
+    )
     conn.execute(
         """
         INSERT INTO items (item_id, run_id, tenant, source_path, extension, bytes, sha256,
@@ -22,8 +25,8 @@ def _insert_run_and_item(conn, tenant="tenant-a"):
     return run_id, item_id
 
 
-def test_claim_returns_pending_item(db_conn):
-    run_id, item_id = _insert_run_and_item(db_conn)
+def test_claim_returns_pending_item(db_conn, tmp_path):
+    run_id, item_id = _insert_run_and_item(db_conn, tmp_path)
     claimed = claim_item(db_conn, "worker-0", lease_seconds=5)
     assert claimed["item_id"] == item_id
     assert claimed["state"] == "in_progress"
@@ -34,16 +37,16 @@ def test_claim_returns_none_when_nothing_pending(db_conn):
     assert claim_item(db_conn, "worker-0", lease_seconds=5) is None
 
 
-def test_two_workers_never_claim_the_same_item(db_conn):
-    _insert_run_and_item(db_conn)
+def test_two_workers_never_claim_the_same_item(db_conn, tmp_path):
+    _insert_run_and_item(db_conn, tmp_path)
     c1 = claim_item(db_conn, "worker-0", lease_seconds=5)
     c2 = claim_item(db_conn, "worker-1", lease_seconds=5)
     assert c1 is not None
     assert c2 is None  # only one item existed
 
 
-def test_expired_lease_becomes_reclaimable(db_conn):
-    _run_id, item_id = _insert_run_and_item(db_conn)
+def test_expired_lease_becomes_reclaimable(db_conn, tmp_path):
+    _run_id, item_id = _insert_run_and_item(db_conn, tmp_path)
     claim_item(db_conn, "worker-0", lease_seconds=0)  # expires immediately
     time.sleep(0.05)
     reclaimed = claim_item(db_conn, "worker-1", lease_seconds=5)
@@ -51,8 +54,8 @@ def test_expired_lease_becomes_reclaimable(db_conn):
     assert reclaimed["leased_by"] == "worker-1"
 
 
-def test_lease_renewer_renews_while_running(db_conn):
-    _run_id, item_id = _insert_run_and_item(db_conn)
+def test_lease_renewer_renews_while_running(db_conn, tmp_path):
+    _run_id, item_id = _insert_run_and_item(db_conn, tmp_path)
     claim_item(db_conn, "worker-0", lease_seconds=1)
     renewer = LeaseRenewer(connect, item_id, "worker-0", lease_seconds=1, interval=1)
     renewer.start()
@@ -63,8 +66,8 @@ def test_lease_renewer_renews_while_running(db_conn):
     renewer.stop()
 
 
-def test_lease_renewer_detects_stolen_lease(db_conn):
-    _run_id, item_id = _insert_run_and_item(db_conn)
+def test_lease_renewer_detects_stolen_lease(db_conn, tmp_path):
+    _run_id, item_id = _insert_run_and_item(db_conn, tmp_path)
     claim_item(db_conn, "worker-0", lease_seconds=1)
     renewer = LeaseRenewer(connect, item_id, "worker-0", lease_seconds=1, interval=1)
     renewer.start()

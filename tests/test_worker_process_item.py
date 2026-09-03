@@ -14,7 +14,10 @@ def _insert_item(conn, files_dir: Path, tenant="tenant-a", content=b"hello", ext
     (files_dir / path).parent.mkdir(parents=True, exist_ok=True)
     (files_dir / path).write_bytes(content)
     import hashlib
-    conn.execute("INSERT INTO runs (run_id, corpus_id, tenant) VALUES (%s, %s, %s)", (run_id, "c1", tenant))
+    conn.execute(
+        "INSERT INTO runs (run_id, corpus_id, tenant, corpus_dir) VALUES (%s, %s, %s, %s)",
+        (run_id, "c1", tenant, str(files_dir)),
+    )
     conn.execute(
         """
         INSERT INTO items (item_id, run_id, tenant, source_path, extension, bytes, sha256,
