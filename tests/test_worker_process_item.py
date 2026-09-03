@@ -153,3 +153,31 @@ def test_exhausted_retries_lands_in_annotation_failed(db_conn, tmp_path, monkeyp
     assert row["state"] == "annotation_failed"
     attempts = db_conn.execute("SELECT COUNT(*) AS n FROM item_attempts WHERE item_id = %s", (item_id,)).fetchone()
     assert attempts["n"] == 5
+
+
+def test_start_attempt_race_is_handled_without_crashing(db_conn, tmp_path, monkeypatch):
+    # Simulates the D-09 backstop: a stale worker (lease already stolen) reaches
+    # start_attempt() concurrently with the new owner and loses the UNIQUE(item_id,
+    # attempt_no) race. process_item must not crash or leave the slot held — it should
+    # roll back and abandon the item, since the current owner is already handling it.
+    import psycopg
+
+    import content_intake.pipeline.worker as worker_mod
+
+    ensure_slots(db_conn, 2)
+    item_id = _insert_item(db_conn, tmp_path)
+    claimed = claim_item(db_conn, "worker-0", lease_seconds=5)
+
+    def fake_start_attempt(conn, item_id, tenant, worker_id, slot_id):
+        raise psycopg.errors.UniqueViolation("simulated race: attempt_no already taken")
+
+    monkeypatch.setattr(worker_mod, "start_attempt", fake_start_attempt)
+
+    def handler(request):
+        raise AssertionError("stub must not be called when start_attempt loses the race")
+
+    process_item(db_conn, connect, claimed, tmp_path,
+                 httpx.Client(transport=httpx.MockTransport(handler)), "http://stub", "worker-0")
+
+    slots = db_conn.execute("SELECT held_by FROM stub_call_slots ORDER BY slot_id").fetchall()
+    assert all(s["held_by"] is None for s in slots)

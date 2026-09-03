@@ -6,6 +6,8 @@ import time
 import uuid
 from pathlib import Path
 
+import psycopg
+
 from content_intake.common import config
 from content_intake.pipeline.extraction import detect_edge_case, extract_text
 from content_intake.pipeline.stub_client import call_annotate
@@ -220,24 +222,33 @@ def process_item(conn, connect_fn, item: dict, corpus_files_dir: Path, stub_clie
                 slot_id = claim_slot(conn, worker_id, lease_seconds=config.LEASE_SECONDS)
                 if slot_id is None:
                     time.sleep(0.05 + random.uniform(0, 0.05))
-            attempt_id, _ = start_attempt(conn, item_id, tenant, worker_id, slot_id)
-            result = call_annotate(stub_client, stub_base_url, data, timeout=HTTP_TIMEOUT_SECONDS)
-            outcome = None
-            if result.error is not None:
-                outcome = result.error
-                last_status = None
-            else:
-                last_status = result.status_code
-                if result.status_code == 200:
-                    outcome = "success"
-                elif result.status_code == 400:
-                    outcome = "invalid_request"
-                elif result.status_code in RETRYABLE_STATUSES:
-                    outcome = "server_error" if result.status_code == 500 else "over_capacity"
+            try:
+                try:
+                    attempt_id, _ = start_attempt(conn, item_id, tenant, worker_id, slot_id)
+                except psycopg.errors.UniqueViolation:
+                    # UNIQUE(item_id, attempt_no) backstop (D-09): this worker's lease was
+                    # already stolen and the new owner recorded this attempt_no first.
+                    # Abandon the item — the current owner is already handling it.
+                    conn.rollback()
+                    return
+                result = call_annotate(stub_client, stub_base_url, data, timeout=HTTP_TIMEOUT_SECONDS)
+                outcome = None
+                if result.error is not None:
+                    outcome = result.error
+                    last_status = None
                 else:
-                    outcome = "unexpected_status"
-            complete_attempt(conn, attempt_id, last_status, outcome)
-            release_slot(conn, slot_id, worker_id)
+                    last_status = result.status_code
+                    if result.status_code == 200:
+                        outcome = "success"
+                    elif result.status_code == 400:
+                        outcome = "invalid_request"
+                    elif result.status_code in RETRYABLE_STATUSES:
+                        outcome = "server_error" if result.status_code == 500 else "over_capacity"
+                    else:
+                        outcome = "unexpected_status"
+                complete_attempt(conn, attempt_id, last_status, outcome)
+            finally:
+                release_slot(conn, slot_id, worker_id)
 
             if outcome == "success":
                 annotation = result.body
