@@ -20,13 +20,14 @@ chmod +x intake
 ./intake up --workers 4
 ./intake corpus --seed 1 --size 100 --tenant tenant-a --out /tmp/corpus-a
 ./intake submit --corpus /tmp/corpus-a --tenant tenant-a
-# => {"run_id": "a91dd1d6-e1a6-4525-9302-45bbf90a7708"}
-./intake status --run a91dd1d6-e1a6-4525-9302-45bbf90a7708
-# => {"run_id": "a91dd1d6-e1a6-4525-9302-45bbf90a7708", "tenant": "tenant-a", "states": {"succeeded": 98, "decode_failed": 1, "empty_content": 1}, "terminal": true}
-./intake items --tenant tenant-a --run a91dd1d6-e1a6-4525-9302-45bbf90a7708 --state succeeded | head -1
-# => [{"item_id": "04f79a2b-3966-44c6-a9fa-c9c4ed77ff41", "run_id": "a91dd1d6-e1a6-4525-9302-45bbf90a7708", "tenant": "tenant-a", ...}
-./intake item --tenant tenant-a --id 04f79a2b-3966-44c6-a9fa-c9c4ed77ff41
-# => {"item_id": "04f79a2b-3966-44c6-a9fa-c9c4ed77ff41", "run_id": "a91dd1d6-e1a6-4525-9302-45bbf90a7708", "tenant": "tenant-a", "source_path": "orig_13.json", "extension": "json", "state": "succeeded", ...}
+# => {"run_id": "ec2aa267-e78b-4529-ad00-568c529ccddf"}
+./intake status --run ec2aa267-e78b-4529-ad00-568c529ccddf
+# => {"run_id": "ec2aa267-e78b-4529-ad00-568c529ccddf", "tenant": "tenant-a", "states": {"decode_failed": 1, "empty_content": 1, "succeeded": 98}, "terminal": true}
+./intake items --tenant tenant-a --run ec2aa267-e78b-4529-ad00-568c529ccddf --state succeeded
+# => [{"item_id": "8777952b-391a-4aa3-ace8-9f5ee797cfd5", "run_id": "ec2aa267-e78b-4529-ad00-568c529ccddf", "tenant": "tenant-a", "source_path": "orig_0.txt", ...}
+# items are listed in manifest order (order_index), so the first record is always orig_0.txt
+./intake item --tenant tenant-a --id 8777952b-391a-4aa3-ace8-9f5ee797cfd5
+# => {"item_id": "8777952b-391a-4aa3-ace8-9f5ee797cfd5", "run_id": "ec2aa267-e78b-4529-ad00-568c529ccddf", "tenant": "tenant-a", "source_path": "orig_0.txt", "extension": "txt", "bytes": 295, "role": "original", "order_index": 0, "state": "succeeded", ...}
 ./intake down
 # => {"status": "down"}
 ```
@@ -69,7 +70,7 @@ pytest -m slow -v
 
 ## Reported run (for grading)
 
-Seed `1`, size `100`, tenant `tenant-a` — generated at `/tmp/corpus-a` (above), submitted as run ID `a91dd1d6-e1a6-4525-9302-45bbf90a7708`.
+Seed `1`, size `100`, tenant `tenant-a` — generated at `/tmp/corpus-a` (above), submitted as run ID `ec2aa267-e78b-4529-ad00-568c529ccddf`.
 
 **Final state:** 98 succeeded, 1 decode_failed, 1 empty_content (100 items total).
 
