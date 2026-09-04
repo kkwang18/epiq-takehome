@@ -28,6 +28,12 @@ def _terminal_split(status: dict) -> dict:
     return {"terminal": total - nonterminal, "nonterminal": nonterminal}
 
 
+def _manifest_seed_size(corpus_dir: Path) -> tuple[int, int]:
+    import json
+    manifest = json.loads((Path(corpus_dir) / "manifest.json").read_text())
+    return manifest["seed"], manifest["size"]
+
+
 def _fetch_item_attempts(conn, run_ids: list[str]) -> list[dict]:
     rows = conn.execute(
         "SELECT ia.completed_at, ia.http_status, ia.outcome, ia.attempt_no "
@@ -86,11 +92,13 @@ def run_execution(corpus_a_dir: Path, tenant_a: str, corpus_b_dir: Path, tenant_
 
     final_a = _status(run_id_a)
     final_b = _status(run_id_b)
+    seed_a, size_a = _manifest_seed_size(corpus_a_dir)
+    seed_b, size_b = _manifest_seed_size(corpus_b_dir)
     return {
-        "run_a": {"run_id": run_id_a, "tenant": tenant_a, "submitted_at": submitted_at,
-                  "terminal_at": terminal_at, "states": final_a["states"]},
-        "run_b": {"run_id": run_id_b, "tenant": tenant_b, "submitted_at": submitted_at,
-                  "terminal_at": terminal_at, "states": final_b["states"]},
+        "run_a": {"run_id": run_id_a, "tenant": tenant_a, "seed": seed_a, "size": size_a,
+                  "submitted_at": submitted_at, "terminal_at": terminal_at, "states": final_a["states"]},
+        "run_b": {"run_id": run_id_b, "tenant": tenant_b, "seed": seed_b, "size": size_b,
+                  "submitted_at": submitted_at, "terminal_at": terminal_at, "states": final_b["states"]},
         "timeseries": timeseries,
         "kill_event": kill_event,
         "stub_stats": stub_stats,

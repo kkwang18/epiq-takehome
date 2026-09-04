@@ -33,6 +33,10 @@ def test_run_execution_no_kill_completes_both_runs(tmp_path):
         )
         assert execution["run_a"]["states"]
         assert execution["run_b"]["states"]
+        assert execution["run_a"]["seed"] == 10
+        assert execution["run_a"]["size"] == 50
+        assert execution["run_b"]["seed"] == 11
+        assert execution["run_b"]["size"] == 50
         assert execution["kill_event"] is None
         assert "billed_calls" in execution["stub_stats"]
         assert len(execution["timeseries"]) >= 1
