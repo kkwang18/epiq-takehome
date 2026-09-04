@@ -332,3 +332,74 @@ def test_start_attempt_race_is_handled_without_crashing(db_conn, tmp_path, monke
 
     slots = db_conn.execute("SELECT held_by FROM stub_call_slots ORDER BY slot_id").fetchall()
     assert all(s["held_by"] is None for s in slots)
+
+
+def test_unreadable_file_terminates_as_processing_error_without_calling_stub(db_conn, tmp_path):
+    ensure_slots(db_conn, 2)
+    item_id = _insert_item(db_conn, tmp_path)
+    # Delete the file after insertion so the read fails at process_item time.
+    (tmp_path / "p.txt").unlink()
+
+    def handler(request):
+        raise AssertionError("must not call the stub when the source file can't be read")
+
+    claimed = claim_item(db_conn, "worker-0", lease_seconds=5)
+    process_item(db_conn, connect, claimed, tmp_path,
+                 httpx.Client(transport=httpx.MockTransport(handler)), "http://stub", "worker-0")
+
+    row = db_conn.execute("SELECT state, reason FROM items WHERE item_id = %s", (item_id,)).fetchone()
+    assert row["state"] == "processing_error"
+    assert row["reason"]["code"] == "processing_error"
+    assert "error" in row["reason"]
+    attempts = db_conn.execute(
+        "SELECT COUNT(*) AS n FROM item_attempts WHERE item_id = %s", (item_id,)
+    ).fetchone()
+    assert attempts["n"] == 0
+
+
+def test_malformed_200_body_is_retried_and_eventually_annotation_failed(db_conn, tmp_path):
+    ensure_slots(db_conn, 2)
+    item_id = _insert_item(db_conn, tmp_path)
+
+    def handler(request):
+        return httpx.Response(200, json={"result": 0.5})  # no "sha256" key
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    for i in range(5):
+        db_conn.execute("UPDATE items SET next_attempt_after = NULL WHERE item_id = %s", (item_id,))
+        db_conn.commit()
+        claimed = claim_item(db_conn, f"worker-{i}", lease_seconds=5)
+        assert claimed is not None, f"claim {i} returned nothing"
+        process_item(db_conn, connect, claimed, tmp_path, client, "http://stub", f"worker-{i}")
+
+    row = db_conn.execute("SELECT state, reason FROM items WHERE item_id = %s", (item_id,)).fetchone()
+    assert row["state"] == "annotation_failed"
+    assert row["reason"]["last_outcome"] == "malformed_response"
+    attempts = db_conn.execute(
+        "SELECT COUNT(*) AS n FROM item_attempts WHERE item_id = %s", (item_id,)
+    ).fetchone()
+    assert attempts["n"] == 5
+
+
+def test_unexpected_status_is_retried_and_eventually_annotation_failed(db_conn, tmp_path):
+    ensure_slots(db_conn, 2)
+    item_id = _insert_item(db_conn, tmp_path)
+
+    def handler(request):
+        return httpx.Response(503, json={"error": "unavailable"})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    for i in range(5):
+        db_conn.execute("UPDATE items SET next_attempt_after = NULL WHERE item_id = %s", (item_id,))
+        db_conn.commit()
+        claimed = claim_item(db_conn, f"worker-{i}", lease_seconds=5)
+        assert claimed is not None, f"claim {i} returned nothing"
+        process_item(db_conn, connect, claimed, tmp_path, client, "http://stub", f"worker-{i}")
+
+    row = db_conn.execute("SELECT state, reason FROM items WHERE item_id = %s", (item_id,)).fetchone()
+    assert row["state"] == "annotation_failed"
+    assert row["reason"]["last_outcome"] == "unexpected_status"
+    attempts = db_conn.execute(
+        "SELECT COUNT(*) AS n FROM item_attempts WHERE item_id = %s", (item_id,)
+    ).fetchone()
+    assert attempts["n"] == 5

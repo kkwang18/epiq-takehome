@@ -177,7 +177,9 @@ def _classify_outcome(result) -> tuple[int | None, str]:
         return None, result.error
     status = result.status_code
     if status == 200:
-        return status, "success"
+        if isinstance(result.body, dict) and "sha256" in result.body:
+            return status, "success"
+        return status, "malformed_response"
     if status == 400:
         return status, "invalid_request"
     if status in RETRYABLE_STATUSES:
@@ -213,7 +215,12 @@ def process_item(conn, connect_fn, item: dict, corpus_files_dir: Path, stub_clie
     # item must be checked for an already-completed successful attempt before anything is sent
     # to the stub. Having the bytes here lets the recovery path below recompute extracted_text
     # instead of finalizing a recovered item with a NULL one.
-    data = (corpus_files_dir / item["source_path"]).read_bytes()
+    try:
+        data = (corpus_files_dir / item["source_path"]).read_bytes()
+    except OSError as e:
+        _finalize(conn, item_id, worker_id, "processing_error",
+                  reason={"code": "processing_error", "error": str(e)})
+        return
 
     prior_success = find_completed_success(conn, item_id)
     if prior_success:
@@ -310,7 +317,8 @@ def process_item(conn, connect_fn, item: dict, corpus_files_dir: Path, stub_clie
                       extracted_text=extracted, reason={"code": "invalid_request", "attempt": attempt_no})
         elif attempt_no >= MAX_ATTEMPTS:
             _finalize(conn, item_id, worker_id, "annotation_failed", extracted_text=extracted,
-                      reason={"code": "annotation_failed", "attempts": attempt_no, "last_status": last_status})
+                      reason={"code": "annotation_failed", "attempts": attempt_no,
+                              "last_status": last_status, "last_outcome": outcome})
         else:
             # Retryable (server_error, over_capacity, timeout, connection_error): release the
             # item rather than retrying in place (D-05) — any worker's next claim can pick it
@@ -344,15 +352,16 @@ def run_worker(index: int) -> None:
             corpus_files_dir = Path(run["corpus_dir"]) / "files"
             process_item(conn, connect, item, corpus_files_dir, stub_client, config.STUB_BASE_URL, worker_id)
         except Exception:
-            # One item must never be able to take the worker process down. Without this, an
-            # item that fails deterministically (unreadable file, malformed row) is a poison
-            # pill: it kills this worker, its lease expires, the next worker reclaims it and
-            # dies the same way, and so on until all four workers are gone and the item never
-            # reaches a terminal state. Logging and moving on leaves the item in_progress to be
-            # reclaimed and retried after its lease expires — the right outcome for a transient
-            # failure, and merely non-ideal (not incorrect) for a permanent one. Deliberately
-            # NOT finalized to some new terminal state: D-04's vocabulary is fixed, and adding
-            # to it is a design decision, not an error-handling detail.
+            # One item must never be able to take the worker process down. An unreadable
+            # source file is now caught inside process_item and finalized as processing_error
+            # (D-04), so it never reaches this catch-all. What's left here is genuinely
+            # unexpected failure (e.g. a transient Postgres error): logging and moving on
+            # leaves the item in_progress to be reclaimed and retried after its lease expires
+            # — the right outcome for a transient failure, and merely non-ideal (not incorrect)
+            # if it somehow turns out to be deterministic. Deliberately not finalized to a
+            # terminal state: this residual bucket is unexpected infrastructure failure, not a
+            # detected permanent condition, so giving it one is a design decision, not an
+            # error-handling detail.
             print(f"[{worker_id}] error while processing an item; continuing", flush=True)
             traceback.print_exc()
             sys.stderr.flush()
