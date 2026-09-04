@@ -3728,14 +3728,20 @@ def test_m1_full_flow(tmp_path):
         subprocess.run([str(REPO_ROOT / "intake"), "down"], cwd=REPO_ROOT, capture_output=True)
 ```
 
-- [ ] **Step 2: Register the `slow` marker so pytest doesn't warn**
+- [ ] **Step 2: Register the `slow` marker and deselect it by default**
+
+Merge into the existing `pytest.ini` (Task 3 already added `pythonpath = src` there — keep it):
 
 ```ini
 # pytest.ini
 [pytest]
+pythonpath = src
+addopts = -m "not slow"
 markers =
     slow: exercises the full ./intake up/submit/status flow against real processes
 ```
+
+Without `addopts`, a bare `pytest` invocation collects `test_m1_end_to_end.py` alongside every other test file. It runs before the `test_worker_*.py`/`test_stub_state.py`/etc. files that depend on `tests/conftest.py`'s `db_conn` fixture needing a live Postgres — and this test's own body calls `./intake down` (which fully removes the Postgres container) on entry and again in its `finally`. A bare `pytest` would therefore tear down the database mid-suite and cascade connection failures into every file collected after it. `addopts = -m "not slow"` makes `slow` opt-in only, matching the intent that this test isn't meant to run on every invocation.
 
 - [ ] **Step 3: Run it**
 
