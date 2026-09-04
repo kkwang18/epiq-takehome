@@ -13,15 +13,30 @@
 | A7 | every item attributed to the correct run/tenant | True | PASS | checked 500 items from run_a all carry tenant=tenant-a |
 | A8 | cross-tenant lookup of a real item returns not found | True | PASS | real tenant-a item looked up as tenant-b: exit_code=1 |
 
-## Control execution
+## Control execution (no fault injected)
 
-- **tenant-a** (run `1db78607-868c-4e43-9bd2-ca4240616662`, seed 1, size 500): submitted 1788551260.01021, terminal 1788551346.474328, states {'succeeded': 498, 'decode_failed': 1, 'empty_content': 1}
-- **tenant-b** (run `07e1c104-7a6c-4915-bda1-ab444ed1e0f4`, seed 2, size 400): submitted 1788551260.01021, terminal 1788551346.474328, states {'succeeded': 398, 'decode_failed': 1, 'empty_content': 1}
-- Stub stats: {'billed_calls': 940, 'current_in_flight': 0, 'max_in_flight': 2, 'server_error_calls': 134, 'over_capacity_calls': 0}
+| Tenant | Run ID | Corpus | Duration | Outcome |
+|---|---|---|---|---|
+| tenant-a | `1db78607-868c-4e43-9bd2-ca4240616662` | seed 1, 500 items | 86.5s | 498 succeeded, 1 decode_failed, 1 empty_content |
+| tenant-b | `07e1c104-7a6c-4915-bda1-ab444ed1e0f4` | seed 2, 400 items | 86.5s | 398 succeeded, 1 decode_failed, 1 empty_content |
 
-## Fault execution
+Both runs submitted together at 15:47:40, both reached terminal at 15:49:06 (2026-09-04).
 
-- **tenant-a** (run `824e5f39-eb6f-4269-914b-ba353aaaf572`, seed 1, size 500): submitted 1788551351.487669, terminal 1788551441.7403111, states {'succeeded': 498, 'decode_failed': 1, 'empty_content': 1}
-- **tenant-b** (run `1d269db4-fad1-48ca-a022-06d90f7d71cc`, seed 2, size 400): submitted 1788551351.487669, terminal 1788551441.7403111, states {'succeeded': 398, 'decode_failed': 1, 'empty_content': 1}
-- Stub stats: {'billed_calls': 941, 'current_in_flight': 0, 'max_in_flight': 2, 'server_error_calls': 134, 'over_capacity_calls': 0}
-- Kill event: {'worker_id': 'worker-3', 'index': 3, 'item_id': 'bed194e2-7ad1-4d73-9d49-3dae03e7b7be', 'kill_time': 1788551352.090951, 'recovered_time': 1788551357.191527}
+**Stub load:** 940 billed calls, 134 server errors (the injected 1-in-7 failure rate), 0 over-capacity (429) responses, peak concurrency held exactly at the configured cap of 2.
+
+## Fault execution (one worker killed mid-run)
+
+| Tenant | Run ID | Corpus | Duration | Outcome |
+|---|---|---|---|---|
+| tenant-a | `824e5f39-eb6f-4269-914b-ba353aaaf572` | seed 1, 500 items | 90.3s | 498 succeeded, 1 decode_failed, 1 empty_content |
+| tenant-b | `1d269db4-fad1-48ca-a022-06d90f7d71cc` | seed 2, 400 items | 90.3s | 398 succeeded, 1 decode_failed, 1 empty_content |
+
+Both runs submitted at 15:49:11, both reached terminal at 15:50:42 (2026-09-04).
+
+**Kill event:** `worker-3` was SIGKILLed at 15:49:12.09, mid-processing of item `bed194e2-7ad1-4d73-9d49-3dae03e7b7be`. That item's work resumed on another worker and reached a terminal state by 15:49:17.19 — **5.1 seconds of recovery**, well inside the 10s bound.
+
+**Stub load:** 941 billed calls, 134 server errors, 0 over-capacity (429) responses, peak concurrency again held at 2.
+
+### Reading it together
+
+Same corpora, same failure schedule, same capacity limit in both runs — the only difference is the kill. Final item outcomes are identical between control and fault (498/1/1 for tenant-a, 398/1/1 for tenant-b), the fault run took ~4s longer (consistent with one item's extra retry cycle after the kill), and the killed item recovered in 5.1s. That is the point of the paired design: the fault changes how long one interrupted item takes to land, not what gets processed.
