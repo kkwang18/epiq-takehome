@@ -1,0 +1,58 @@
+[
+  {
+    "id": "A1",
+    "description": "killed worker owned a nonterminal item",
+    "mandatory": true,
+    "passed": true,
+    "detail": "{'worker_id': 'worker-2', 'index': 2, 'item_id': 'e960ee00-b331-468c-9f3c-e42d2c1865dd', 'kill_time': 1788532662.792564, 'recovered_time': 1788532667.646222}"
+  },
+  {
+    "id": "A2",
+    "description": "recovery within 10s, every item terminates",
+    "mandatory": true,
+    "passed": true,
+    "detail": "recovery_seconds=4.853658199310303"
+  },
+  {
+    "id": "A3",
+    "description": "max_in_flight<=2 and over_capacity_calls==0",
+    "mandatory": true,
+    "passed": true,
+    "detail": "{'billed_calls': 941, 'current_in_flight': 0, 'max_in_flight': 2, 'server_error_calls': 134, 'over_capacity_calls': 0}"
+  },
+  {
+    "id": "A4",
+    "description": "retry amplification within D-06 bound",
+    "mandatory": true,
+    "passed": true,
+    "detail": "control={'passed': True, 'total_attempts': 940, 'bound': 1411} fault={'passed': True, 'total_attempts': 941, 'bound': 1416}"
+  },
+  {
+    "id": "A5",
+    "description": "counters reconcile with item outcomes",
+    "mandatory": true,
+    "passed": true,
+    "detail": "control={'passed': True, 'completed': 940, 'dangling': 0, 'billed_calls': 940} fault={'passed': True, 'completed': 941, 'dangling': 0, 'billed_calls': 941}"
+  },
+  {
+    "id": "A6",
+    "description": "genuine overlap, both directions",
+    "mandatory": true,
+    "passed": true,
+    "detail": "{'passed': True, 'a_terminal_b_nonterminal': True, 'b_terminal_a_nonterminal': True}"
+  },
+  {
+    "id": "A7",
+    "description": "every item attributed to the correct run/tenant",
+    "mandatory": true,
+    "passed": true,
+    "detail": "checked 500 items from run_a all carry tenant=tenant-a"
+  },
+  {
+    "id": "A8",
+    "description": "cross-tenant lookup of a real item returns not found",
+    "mandatory": true,
+    "passed": true,
+    "detail": "real tenant-a item looked up as tenant-b: exit_code=1"
+  }
+]

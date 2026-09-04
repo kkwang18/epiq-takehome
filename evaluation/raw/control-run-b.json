@@ -1,0 +1,13 @@
+{
+  "run_id": "60d19525-9e64-4ff6-b0f9-039772ac1f93",
+  "tenant": "tenant-b",
+  "seed": 2,
+  "size": 400,
+  "submitted_at": 1788532569.186212,
+  "terminal_at": 1788532657.2999501,
+  "states": {
+    "decode_failed": 1,
+    "empty_content": 1,
+    "succeeded": 398
+  }
+}

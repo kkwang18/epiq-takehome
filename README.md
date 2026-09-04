@@ -70,6 +70,21 @@ STUB_URL=http://localhost:8080 pytest tests/test_stub_conformance.py -v
 pytest -m slow -v
 ```
 
+## Scenario (M2)
+
+```bash
+./intake scenario
+```
+
+Takes no flags — runs the fixed evaluation profile (tenant-a, 500 items, seed 1; tenant-b, 400
+items, seed 2; 4 workers; stub latency fixed 150ms, `failure_every_n=7`, `in_flight_capacity=2`
+in both executions). Brings the environment up from empty state, runs a paired **control**
+execution (no fault) and a **fault** execution (kills one worker mid-run) — each from a fresh
+`./intake reset`, so no content or annotation records are reused between them — then prints every
+mandatory assertion (REQ-2.2/2.3) as `[PASS]`/`[FAIL]` with its supporting detail, writes
+`EVALUATION.md` at the repo root and machine-readable evidence under `evaluation/raw/`, and exits
+0 only if every mandatory assertion passed. Takes several minutes (900 items × 2 executions).
+
 ## Reported run (for grading)
 
 Seed `1`, size `100`, tenant `tenant-a` — generated at `/tmp/corpus-a` (above), submitted as run ID `ec2aa267-e78b-4529-ad00-568c529ccddf`.
@@ -78,12 +93,15 @@ Seed `1`, size `100`, tenant `tenant-a` — generated at `/tmp/corpus-a` (above)
 
 All example commands in the Quickstart section above were executed against this real run and produce output as shown.
 
+The M2 scenario's reported run: tenant-a seed `1` size `500`, tenant-b seed `2` size `400` (the
+fixed evaluation profile — see `docs/superpowers/specs/2026-09-04-m2-scenario-harness-design.md`).
+All 8 mandatory assertions passed; see `EVALUATION.md` and `evaluation/raw/` for the full evidence.
+
 ## Architecture and decisions
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) and [`DECISIONS.md`](DECISIONS.md).
 
-## Known M1 scope cuts
+## Known scope cuts
 
-- `D-06` (secondary performance thresholds) and `D-07` (local-environment fidelity) are deferred to the M2 build, where they can be set against real observed numbers (see `DECISIONS.md`).
-- `kill-worker` is implemented and exercised manually, but the M2 scenario harness (`./intake scenario`) that asserts recovery timing does not exist yet.
-- An item whose processing raises an unhandled exception is logged and left `in_progress` (the worker survives and moves on; the item's lease expires and it is reclaimed and retried). An item that fails this way *deterministically* will therefore be retried indefinitely rather than reaching a terminal state — giving it one requires a terminal state that D-04's fixed vocabulary does not yet have, which is an M2 decision.
+- An item whose processing raises an unhandled exception is logged and left `in_progress` (the worker survives and moves on; the item's lease expires and it is reclaimed and retried). An item that fails this way *deterministically* will therefore be retried indefinitely rather than reaching a terminal state — giving it one requires a terminal state that D-04's fixed vocabulary does not yet have. Not exercised by the M2 profile, which doesn't inject file corruption or any fault other than one `SIGKILL`.
+- Exactly-once billing across every crash boundary is out of scope by design (D-09) — duplicate billing is measured and explained (see the billed-call delta in `EVALUATION.md`), never claimed to be prevented.
