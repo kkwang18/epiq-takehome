@@ -16,8 +16,8 @@ def _insert_run_and_item(conn, tmp_path, tenant="tenant-a"):
     conn.execute(
         """
         INSERT INTO items (item_id, run_id, tenant, source_path, extension, bytes, sha256,
-                            role, expects_annotation, state)
-        VALUES (%s, %s, %s, 'p', 'txt', 5, 'abc', 'original', true, 'pending')
+                            role, order_index, expects_annotation, state)
+        VALUES (%s, %s, %s, 'p', 'txt', 5, 'abc', 'original', 0, true, 'pending')
         """,
         (item_id, run_id, tenant),
     )

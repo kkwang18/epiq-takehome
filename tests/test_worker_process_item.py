@@ -5,7 +5,7 @@ from pathlib import Path
 import httpx
 
 from content_intake.pipeline.db import connect, ensure_slots
-from content_intake.pipeline.worker import claim_item, process_item
+from content_intake.pipeline.worker import claim_item, complete_attempt, process_item, start_attempt
 
 
 def _insert_item(conn, files_dir: Path, tenant="tenant-a", content=b"hello", extension="txt", role="original", expects_annotation=True, path="p.txt"):
@@ -21,8 +21,8 @@ def _insert_item(conn, files_dir: Path, tenant="tenant-a", content=b"hello", ext
     conn.execute(
         """
         INSERT INTO items (item_id, run_id, tenant, source_path, extension, bytes, sha256,
-                            role, expects_annotation, state)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
+                            role, order_index, expects_annotation, state)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0, %s, 'pending')
         """,
         (item_id, run_id, tenant, path, extension, len(content), hashlib.sha256(content).hexdigest(), role, expects_annotation),
     )
@@ -119,6 +119,93 @@ def test_cache_is_not_shared_across_tenants(db_conn, tmp_path):
     row = db_conn.execute("SELECT state, annotation FROM items WHERE item_id = %s", (item_id,)).fetchone()
     assert row["state"] == "succeeded"
     assert row["annotation"].get("cached") is not True  # got a fresh annotation, not tenant-a's cached one
+
+
+def test_recovered_success_reuses_cached_annotation_and_extracted_text(db_conn, tmp_path):
+    # A previous holder got a 200 and recorded it, then died before writing items.state.
+    # The new claimant must finalize from the completed attempt plus the cache — without
+    # re-calling the stub, and with extracted_text re-derived from the file's bytes rather
+    # than left NULL.
+    ensure_slots(db_conn, 2)
+    content = b"hello"
+    import hashlib
+    sha = hashlib.sha256(content).hexdigest()
+    item_id = _insert_item(db_conn, tmp_path, content=content)
+    db_conn.execute(
+        "INSERT INTO annotations_cache (tenant, sha256, annotation) VALUES ('tenant-a', %s, %s)",
+        (sha, '{"cached": true}'),
+    )
+    attempt_id, _ = start_attempt(db_conn, item_id, "tenant-a", "worker-0", slot_id=1)
+    complete_attempt(db_conn, attempt_id, http_status=200, outcome="success")
+
+    def handler(request):
+        raise AssertionError("stub must not be called when a prior success is recoverable")
+
+    claimed = claim_item(db_conn, "worker-0", lease_seconds=30)
+    process_item(db_conn, connect, claimed, tmp_path,
+                 httpx.Client(transport=httpx.MockTransport(handler)), "http://stub", "worker-0")
+    row = db_conn.execute(
+        "SELECT state, annotation, extracted_text FROM items WHERE item_id = %s", (item_id,)
+    ).fetchone()
+    assert row["state"] == "succeeded"
+    assert row["annotation"]["cached"] is True
+    assert row["extracted_text"] == "hello"
+
+
+def test_completed_success_with_no_cache_row_reprocesses_instead_of_empty_annotation(db_conn, tmp_path):
+    # Defensive: the commit ordering in process_item makes "completed success, no cache row"
+    # unreachable, but if it ever occurs the item must be reprocessed, not finalized as
+    # succeeded with an empty annotation — that would report silently wrong data as success.
+    ensure_slots(db_conn, 2)
+    item_id = _insert_item(db_conn, tmp_path)
+    attempt_id, _ = start_attempt(db_conn, item_id, "tenant-a", "worker-0", slot_id=1)
+    complete_attempt(db_conn, attempt_id, http_status=200, outcome="success")
+    assert db_conn.execute("SELECT COUNT(*) AS n FROM annotations_cache").fetchone()["n"] == 0
+
+    claimed = claim_item(db_conn, "worker-0", lease_seconds=30)
+    process_item(db_conn, connect, claimed, tmp_path,
+                 _fake_success_client(), "http://stub", "worker-0")
+    row = db_conn.execute(
+        "SELECT state, annotation, extracted_text FROM items WHERE item_id = %s", (item_id,)
+    ).fetchone()
+    assert row["state"] == "succeeded"
+    assert row["annotation"] != {}, "must not finalize a recovered item with an empty annotation"
+    assert row["annotation"]["result"] == 0.5  # freshly fetched, i.e. it really did reprocess
+    assert row["extracted_text"] == "hello"
+    # and reprocessing repaired the missing cache row
+    assert db_conn.execute("SELECT COUNT(*) AS n FROM annotations_cache").fetchone()["n"] == 1
+
+
+def test_cache_row_commits_before_the_attempt_is_marked_complete(db_conn, tmp_path, monkeypatch):
+    # The ordering guarantee that makes the recovery path above safe: at the moment
+    # complete_attempt runs, the annotations_cache row must already be committed.
+    import content_intake.pipeline.worker as worker_mod
+
+    ensure_slots(db_conn, 2)
+    _insert_item(db_conn, tmp_path)
+    observed = {}
+    real_complete_attempt = worker_mod.complete_attempt
+
+    def spy(conn, attempt_id, http_status, outcome):
+        # Read the cache through a *separate* connection, so only committed rows are visible.
+        other = connect()
+        try:
+            observed["cache_rows"] = other.execute(
+                "SELECT COUNT(*) AS n FROM annotations_cache"
+            ).fetchone()["n"]
+        finally:
+            other.close()
+        return real_complete_attempt(conn, attempt_id, http_status, outcome)
+
+    monkeypatch.setattr(worker_mod, "complete_attempt", spy)
+
+    claimed = claim_item(db_conn, "worker-0", lease_seconds=30)
+    process_item(db_conn, connect, claimed, tmp_path,
+                 _fake_success_client(), "http://stub", "worker-0")
+
+    assert observed["cache_rows"] == 1, (
+        "annotations_cache row was not durable before the attempt was marked complete"
+    )
 
 
 def test_400_terminates_immediately_as_invalid_request(db_conn, tmp_path):

@@ -1,8 +1,10 @@
 # src/content_intake/pipeline/worker.py
 import json
 import random
+import sys
 import threading
 import time
+import traceback
 import uuid
 from pathlib import Path
 
@@ -31,7 +33,11 @@ def claim_item(conn, worker_id: str, lease_seconds: int) -> dict | None:
         WHERE item_id = (
             SELECT item_id FROM items
             WHERE state = 'pending' OR (state = 'in_progress' AND leased_until < now())
-            ORDER BY created_at
+            -- created_at keeps cross-run FIFO by submission time; order_index breaks the
+            -- tie *within* a run, where every row shares one transaction timestamp. Without
+            -- it the claim order inside a run is arbitrary heap order, and a duplicate can
+            -- be claimed before its original -- missing the cache and burning a billed call.
+            ORDER BY created_at, order_index
             LIMIT 1
             FOR UPDATE SKIP LOCKED
         )
@@ -184,18 +190,30 @@ def process_item(conn, connect_fn, item: dict, corpus_files_dir: Path, stub_clie
     item_id = item["item_id"]
     tenant = item["tenant"]  # D-10: tenant comes only from the claimed row, never anywhere else
 
+    # Read the item's bytes up front. This is a local filesystem read, not a stub call, so
+    # doing it before the prior-success check does not violate the D-09 rule that a reclaimed
+    # item must be checked for an already-completed successful attempt before anything is sent
+    # to the stub. Having the bytes here lets the recovery path below recompute extracted_text
+    # instead of finalizing a recovered item with a NULL one.
+    data = (corpus_files_dir / item["source_path"]).read_bytes()
+
     prior_success = find_completed_success(conn, item_id)
     if prior_success:
         # item_attempts doesn't store the annotation payload itself — re-fetch it from
-        # annotations_cache by content hash, since a successful attempt always writes there.
+        # annotations_cache by content hash, since a successful attempt always writes there
+        # (and commits that write *before* marking the attempt complete, see below).
         cached = conn.execute(
             "SELECT annotation FROM annotations_cache WHERE tenant = %s AND sha256 = %s",
             (tenant, item["sha256"]),
         ).fetchone()
-        _finalize(conn, item_id, worker_id, "succeeded", annotation=cached["annotation"] if cached else {})
-        return
-
-    data = (corpus_files_dir / item["source_path"]).read_bytes()
+        if cached is not None:
+            _finalize(conn, item_id, worker_id, "succeeded", annotation=cached["annotation"],
+                      extracted_text=extract_text(item["extension"], data))
+            return
+        # No cache row despite a completed successful attempt. The commit ordering below makes
+        # this unreachable, but if it ever happens the safe move is to reprocess from scratch —
+        # finalizing "succeeded" with an empty annotation would report silently wrong data as a
+        # success. Fall through into normal processing instead of returning.
 
     edge_case = detect_edge_case(item["extension"], data)
     if edge_case is not None:
@@ -248,18 +266,28 @@ def process_item(conn, connect_fn, item: dict, corpus_files_dir: Path, stub_clie
                         outcome = "server_error" if result.status_code == 500 else "over_capacity"
                     else:
                         outcome = "unexpected_status"
+                if outcome == "success":
+                    annotation = result.body
+                    # Commit the cache row BEFORE the attempt row is marked complete. These
+                    # two commits are strictly sequential on one connection, so a later commit
+                    # cannot be durable unless the earlier one is: if a crash here leaves a
+                    # completed 'success' attempt behind, its cache row is guaranteed to exist,
+                    # and the recovery path at the top of this function can finalize from it.
+                    # The reverse order left a window where an attempt said "success" with no
+                    # annotation anywhere — reported as success with an empty annotation.
+                    # This still satisfies D-09: the attempt UPDATE commits after the HTTP call
+                    # returns, just before rather than after the cache write.
+                    conn.execute(
+                        "INSERT INTO annotations_cache (tenant, sha256, annotation) VALUES (%s, %s, %s) "
+                        "ON CONFLICT (tenant, sha256) DO NOTHING",
+                        (tenant, item["sha256"], json.dumps(annotation)),
+                    )
+                    conn.commit()
                 complete_attempt(conn, attempt_id, last_status, outcome)
             finally:
                 release_slot(conn, slot_id, worker_id)
 
             if outcome == "success":
-                annotation = result.body
-                conn.execute(
-                    "INSERT INTO annotations_cache (tenant, sha256, annotation) VALUES (%s, %s, %s) "
-                    "ON CONFLICT (tenant, sha256) DO NOTHING",
-                    (tenant, item["sha256"], json.dumps(annotation)),
-                )
-                conn.commit()
                 _finalize(conn, item_id, worker_id, "succeeded", annotation=annotation, extracted_text=extracted)
                 return
             if outcome == "invalid_request":
@@ -281,20 +309,35 @@ def run_worker(index: int) -> None:
     stub_client = httpx.Client()
     print(f"[{worker_id}] starting", flush=True)
     while True:
-        conn = connect()
+        conn = None
         try:
+            conn = connect()
             item = claim_item(conn, worker_id, lease_seconds=config.LEASE_SECONDS)
             if item is None:
-                conn.close()
                 time.sleep(0.5)
                 continue
             run = conn.execute("SELECT corpus_dir FROM runs WHERE run_id = %s", (item["run_id"],)).fetchone()
             corpus_files_dir = Path(run["corpus_dir"]) / "files"
             process_item(conn, connect, item, corpus_files_dir, stub_client, config.STUB_BASE_URL, worker_id)
+        except Exception:
+            # One item must never be able to take the worker process down. Without this, an
+            # item that fails deterministically (unreadable file, malformed row) is a poison
+            # pill: it kills this worker, its lease expires, the next worker reclaims it and
+            # dies the same way, and so on until all four workers are gone and the item never
+            # reaches a terminal state. Logging and moving on leaves the item in_progress to be
+            # reclaimed and retried after its lease expires — the right outcome for a transient
+            # failure, and merely non-ideal (not incorrect) for a permanent one. Deliberately
+            # NOT finalized to some new terminal state: D-04's vocabulary is fixed, and adding
+            # to it is a design decision, not an error-handling detail.
+            print(f"[{worker_id}] error while processing an item; continuing", flush=True)
+            traceback.print_exc()
+            sys.stderr.flush()
+            # Brief pause so a poison item that is immediately reclaimable can't hot-loop.
+            time.sleep(0.5)
         finally:
-            conn.close()
+            if conn is not None:
+                conn.close()
 
 
 if __name__ == "__main__":
-    import sys
     run_worker(int(sys.argv[1]) if len(sys.argv) > 1 else 0)

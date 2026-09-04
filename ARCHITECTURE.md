@@ -60,12 +60,21 @@ SET state = 'in_progress', leased_by = $worker_id, leased_until = now() + $lease
 WHERE id = (
   SELECT id FROM items
   WHERE state = 'pending' OR (state = 'in_progress' AND leased_until < now())
-  ORDER BY created_at
+  ORDER BY created_at, order_index
   LIMIT 1
   FOR UPDATE SKIP LOCKED
 )
 RETURNING *;
 ```
+
+`created_at` alone is not a sufficient ordering: `submit` inserts every item of a run inside one
+transaction (D-14) and Postgres's `now()` is the *transaction* timestamp, so all of a run's items
+share one `created_at` and the claim order within a run would be arbitrary heap order.
+`order_index` — the manifest's own `order` field, which lists originals first, then duplicates,
+then edge cases — is the tiebreaker. It matters beyond tidiness: D-02's `annotations_cache` only
+converts duplicate content into *avoided* cost if an original is generally processed before its
+duplicates, and arbitrary ordering breaks that. `created_at` stays first in the sort so runs are
+still served FIFO by submission time relative to each other.
 
 If the owning worker is SIGKILLed, no one releases the lease explicitly — the item simply
 becomes claimable again once `leased_until` passes, purely because every future claim attempt's
@@ -101,10 +110,15 @@ becomes claimable the same way an abandoned item does.
 
 ## Per-item processing
 
-1. Claim item (above). Before doing anything else, check `item_attempts` for this item for an
+1. Claim item (above). Read the file's bytes from disk (a local read, not a stub call). Then,
+   before anything is sent to the stub, check `item_attempts` for this item for an
    already-completed *successful* attempt (possible if a previous holder got a 200 back but died
-   before writing `items.state`) — if found, finalize directly from that record instead of
-   calling the stub again.
+   before writing `items.state`) — if found, re-read the annotation from `annotations_cache` by
+   content hash (`item_attempts` stores the outcome, not the payload) and finalize from it,
+   re-deriving `extracted_text` from the bytes read above. Step 5's commit ordering guarantees
+   that cache row exists whenever a completed successful attempt does; in the impossible case
+   that it doesn't, the worker falls through and reprocesses the item normally rather than
+   finalizing `succeeded` with an empty annotation.
 2. Empty bytes → terminal `empty_content`. `.json` failing `json.loads` → terminal
    `decode_failed`. Both detected before anything touches the stub or `stub_call_slots`.
 3. Extract text for `.txt`/`.json`/`.csv`. `.png` gets no extracted text but still proceeds to
@@ -118,13 +132,24 @@ becomes claimable the same way an abandoned item does.
    - **Commit** an `item_attempts` insert (`started_at`, `worker_id`, `slot_id`, `attempt_no`) —
      this transaction lands *before* the HTTP call is sent.
    - `POST /v1/annotate`.
+   - On `200` only: **commit** the `annotations_cache` row for `(tenant, sha256)`. This lands
+     *before* the attempt is marked complete, deliberately — see below.
    - **Commit** an `item_attempts` update (`completed_at`, `http_status`, `outcome`) — this
      transaction lands after the call returns (or the timeout fires).
    - Release the slot in a `finally`.
-   - `200` → write the annotation to `items` and `annotations_cache`, terminal `succeeded`.
+   - `200` → write the annotation and extracted text to `items`, terminal `succeeded`.
      `400` → terminal `annotation_invalid_request` immediately, no further attempts.
      `500`/`429`/timeout → retryable; loop again if attempts remain, otherwise terminal
      `annotation_failed`.
+
+The cache commit precedes the attempt-completion commit because step 1's recovery path reads the
+cache to reconstruct an annotation it can't get from `item_attempts`. Both commits are sequential
+on one connection, so a later one cannot be durable unless the earlier one is: a completed
+`outcome='success'` attempt therefore *implies* its cache row survived. The opposite order left a
+crash window where an attempt row claimed success with the annotation nowhere on disk, and the
+next claimant reported the item `succeeded` with an empty annotation — a silent data error
+dressed as a success. This does not weaken D-09: the attempt insert still commits before the HTTP
+call and the update still commits after it returns.
 
 **Crash windows against this sequence** (all writes above are conditioned on
 `leased_by = $worker_id`, so a stale worker can never complete a stolen item regardless of which
@@ -134,13 +159,15 @@ window it dies in):
 |---|---|---|
 | before the `item_attempts` insert commits | No attempt row for this try | Lease expires, reclaimed, retried fresh. No billing occurred, and nothing suggests otherwise. |
 | after the insert commits, whether before the request was even sent, mid-flight, or after a response arrived but before the update commits | Row with `completed_at IS NULL` | Durable, queryable evidence of a *possibly*-billed, unrecorded attempt (D-09). Reconciliation reads this as "cannot rule out billing," never as confirmation — the row can't distinguish "died before sending" from "died waiting on the response," and the conservative reading is the safe one. This is the case M2 measures and explains, not one it can prevent. |
+| after a `200`'s cache row commits, before the attempt update commits (a sub-case of the row above) | Cache row present; attempt still `completed_at IS NULL` | The next claimant finds no *completed* success, so it reprocesses from step 1 — but its step-4 cache lookup now hits, so it finalizes `succeeded` from the cache without re-calling the stub. The attempt row is still correctly readable as "cannot rule out billing." |
 | after the update commits, before the slot is released | Attempt row complete; `stub_call_slots` row still marked held | The slot's own short lease expires and self-heals (D-08) — no special handling needed. |
-| after a successful outcome is recorded, before `items.state` is written | Attempt row shows `outcome='success'`; item still `in_progress` | Next claimant finalizes from the completed `item_attempts` row (step 1 above) instead of re-calling the stub. |
+| after a successful outcome is recorded, before `items.state` is written | Attempt row shows `outcome='success'`; item still `in_progress`; cache row guaranteed present (it committed first) | Next claimant finalizes from the completed `item_attempts` row plus the cache (step 1 above) instead of re-calling the stub. |
+| anywhere, with an unhandled exception rather than a kill | Item left `in_progress` | The worker logs a traceback to `.intake_logs/worker-N.log` and claims the next item rather than dying — one bad item must not take down a worker, and then each worker that reclaims it in turn. The item's lease expires and it is reclaimed and retried like any abandoned item. An item that fails this way deterministically is retried indefinitely; giving it a terminal state needs a state D-04's fixed vocabulary does not have, so that is left as an M2 decision rather than invented here. |
 
 ## Data model (Postgres)
 
 - `runs(run_id PK, corpus_id, tenant, submitted_at)`
-- `items(item_id PK, run_id FK, tenant, source_path, extension, bytes, sha256, role, duplicate_of, edge_case, expects_annotation, state, leased_by, leased_until, reason JSONB, extracted_text TEXT NULL, annotation JSONB NULL, created_at, updated_at)`
+- `items(item_id PK, run_id FK, tenant, source_path, extension, bytes, sha256, role, order_index, duplicate_of, edge_case, expects_annotation, state, leased_by, leased_until, reason JSONB, extracted_text TEXT NULL, annotation JSONB NULL, created_at, updated_at)` — `order_index` is the manifest's `order` field (renamed off the reserved keyword) and is the claim/listing tiebreaker within a run, where `created_at` is identical for every row
 - `annotations_cache(tenant, sha256, annotation JSONB, created_at, PRIMARY KEY(tenant, sha256))`
 - `stub_call_slots(slot_id PK, held_by TEXT NULL, lease_until TIMESTAMPTZ NULL)` — row count = `in_flight_capacity`
 - `item_attempts(attempt_id PK, item_id FK, tenant, attempt_no, started_at, worker_id, slot_id, completed_at NULL, http_status NULL, outcome NULL, UNIQUE(item_id, attempt_no))` — insert commits before the stub call, update commits after (D-09)

@@ -41,13 +41,13 @@ def submit_run(conn, corpus_dir: Path, tenant: str) -> str:
             conn.execute(
                 """
                 INSERT INTO items (item_id, run_id, tenant, source_path, extension, bytes, sha256,
-                                    role, duplicate_of, edge_case, expects_annotation, state)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
+                                    role, order_index, duplicate_of, edge_case, expects_annotation, state)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending')
                 """,
                 (
                     str(uuid.uuid4()), run_id, tenant, entry["path"], entry["extension"],
-                    entry["bytes"], actual_sha, entry["role"], entry.get("duplicate_of"),
-                    entry.get("edge_case"), entry["expects_annotation"],
+                    entry["bytes"], actual_sha, entry["role"], entry["order"],
+                    entry.get("duplicate_of"), entry.get("edge_case"), entry["expects_annotation"],
                 ),
             )
     return run_id
@@ -110,14 +110,18 @@ def create_api_app() -> FastAPI:
             run = conn.execute("SELECT tenant FROM runs WHERE run_id = %s", (run_id,)).fetchone()
             if run is None or run["tenant"] != tenant:
                 return JSONResponse(status_code=404, content={"error": "not_found"})
+            # created_at is identical for every item in a run (one transaction, one now()),
+            # so order_index -- the manifest's own order -- is what actually orders this list.
             if state:
                 rows = conn.execute(
-                    "SELECT * FROM items WHERE run_id = %s AND tenant = %s AND state = %s ORDER BY created_at",
+                    "SELECT * FROM items WHERE run_id = %s AND tenant = %s AND state = %s "
+                    "ORDER BY created_at, order_index",
                     (run_id, tenant, state),
                 ).fetchall()
             else:
                 rows = conn.execute(
-                    "SELECT * FROM items WHERE run_id = %s AND tenant = %s ORDER BY created_at", (run_id, tenant)
+                    "SELECT * FROM items WHERE run_id = %s AND tenant = %s ORDER BY created_at, order_index",
+                    (run_id, tenant),
                 ).fetchall()
             return [_item_to_json(r) for r in rows]
         finally:

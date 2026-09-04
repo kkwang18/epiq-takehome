@@ -16,6 +16,13 @@ CREATE TABLE IF NOT EXISTS items (
     bytes INTEGER NOT NULL,
     sha256 TEXT NOT NULL,
     role TEXT NOT NULL,
+    -- Position of this item in its corpus manifest ("order" in manifest.json, renamed to
+    -- avoid the reserved SQL keyword). Every item in a run shares one created_at, because
+    -- submit_run inserts them all inside a single transaction and now() is the transaction
+    -- timestamp -- so created_at alone is not a usable ordering within a run. order_index is
+    -- the tiebreaker that makes "originals before their duplicates" real, which is what lets
+    -- annotations_cache actually avoid billed calls for duplicate content (D-02).
+    order_index INTEGER NOT NULL,
     duplicate_of TEXT,
     edge_case TEXT,
     expects_annotation BOOLEAN NOT NULL,
@@ -28,6 +35,13 @@ CREATE TABLE IF NOT EXISTS items (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Migration for databases created before order_index existed. On a fresh database both
+-- statements are no-ops (the column is already in the CREATE TABLE above); on an existing
+-- one the ADD backfills existing rows with 0 and the DROP DEFAULT restores the
+-- "callers must supply it" contract the CREATE TABLE declares.
+ALTER TABLE items ADD COLUMN IF NOT EXISTS order_index INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE items ALTER COLUMN order_index DROP DEFAULT;
 
 CREATE INDEX IF NOT EXISTS idx_items_claim ON items (state, leased_until);
 CREATE INDEX IF NOT EXISTS idx_items_run_state ON items (run_id, state);
