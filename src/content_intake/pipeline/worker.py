@@ -172,6 +172,19 @@ def _backoff_delay(attempt: int) -> float:
     return max(0.0, base + random.uniform(-jitter, jitter))
 
 
+def _classify_outcome(result) -> tuple[int | None, str]:
+    if result.error is not None:
+        return None, result.error
+    status = result.status_code
+    if status == 200:
+        return status, "success"
+    if status == 400:
+        return status, "invalid_request"
+    if status in RETRYABLE_STATUSES:
+        return status, "server_error" if status == 500 else "over_capacity"
+    return status, "unexpected_status"
+
+
 def _finalize(conn, item_id: str, worker_id: str, state: str, annotation=None, extracted_text=None, reason=None) -> None:
     conn.execute(
         """
@@ -235,76 +248,82 @@ def process_item(conn, connect_fn, item: dict, corpus_files_dir: Path, stub_clie
         _finalize(conn, item_id, worker_id, "succeeded", annotation=cached["annotation"], extracted_text=extracted)
         return
 
+    cap_count = conn.execute(
+        "SELECT COUNT(*) AS n FROM item_attempts WHERE item_id = %s", (item_id,)
+    ).fetchone()["n"]
+    if cap_count >= MAX_ATTEMPTS:
+        _finalize(conn, item_id, worker_id, "annotation_failed", extracted_text=extracted,
+                  reason={"code": "annotation_failed", "attempts": cap_count, "note": "cap_reached_at_claim"})
+        return
+
     renewer = LeaseRenewer(connect_fn, item_id, worker_id, lease_seconds=config.LEASE_SECONDS, interval=config.LEASE_RENEW_INTERVAL)
     renewer.start()
     try:
+        if renewer.lost():
+            return
+        slot_id = None
+        while slot_id is None:
+            slot_id = claim_slot(conn, worker_id, lease_seconds=config.LEASE_SECONDS)
+            if slot_id is None:
+                time.sleep(0.05 + random.uniform(0, 0.05))
+
+        outcome = None
+        annotation = None
+        attempt_no = None
         last_status = None
-        for attempt in range(1, MAX_ATTEMPTS + 1):
-            if renewer.lost():
-                return
-            slot_id = None
-            while slot_id is None:
-                slot_id = claim_slot(conn, worker_id, lease_seconds=config.LEASE_SECONDS)
-                if slot_id is None:
-                    time.sleep(0.05 + random.uniform(0, 0.05))
+        try:
             try:
-                try:
-                    attempt_id, _ = start_attempt(conn, item_id, tenant, worker_id, slot_id)
-                except psycopg.errors.UniqueViolation:
-                    # UNIQUE(item_id, attempt_no) backstop (D-09): this worker's lease was
-                    # already stolen and the new owner recorded this attempt_no first.
-                    # Abandon the item — the current owner is already handling it.
-                    conn.rollback()
-                    return
-                result = call_annotate(stub_client, stub_base_url, data, timeout=HTTP_TIMEOUT_SECONDS)
-                outcome = None
-                if result.error is not None:
-                    outcome = result.error
-                    last_status = None
-                else:
-                    last_status = result.status_code
-                    if result.status_code == 200:
-                        outcome = "success"
-                    elif result.status_code == 400:
-                        outcome = "invalid_request"
-                    elif result.status_code in RETRYABLE_STATUSES:
-                        outcome = "server_error" if result.status_code == 500 else "over_capacity"
-                    else:
-                        outcome = "unexpected_status"
-                if outcome == "success":
-                    annotation = result.body
-                    # Commit the cache row BEFORE the attempt row is marked complete. These
-                    # two commits are strictly sequential on one connection, so a later commit
-                    # cannot be durable unless the earlier one is: if a crash here leaves a
-                    # completed 'success' attempt behind, its cache row is guaranteed to exist,
-                    # and the recovery path at the top of this function can finalize from it.
-                    # The reverse order left a window where an attempt said "success" with no
-                    # annotation anywhere — reported as success with an empty annotation.
-                    # This still satisfies D-09: the attempt UPDATE commits after the HTTP call
-                    # returns, just before rather than after the cache write.
-                    conn.execute(
-                        "INSERT INTO annotations_cache (tenant, sha256, annotation) VALUES (%s, %s, %s) "
-                        "ON CONFLICT (tenant, sha256) DO NOTHING",
-                        (tenant, item["sha256"], json.dumps(annotation)),
-                    )
-                    conn.commit()
-                complete_attempt(conn, attempt_id, last_status, outcome)
-            finally:
-                release_slot(conn, slot_id, worker_id)
-
+                attempt_id, attempt_no = start_attempt(conn, item_id, tenant, worker_id, slot_id)
+            except psycopg.errors.UniqueViolation:
+                # UNIQUE(item_id, attempt_no) backstop (D-09): this worker's lease was
+                # already stolen and the new owner recorded this attempt_no first.
+                # Abandon the item — the current owner is already handling it.
+                conn.rollback()
+                return
+            result = call_annotate(stub_client, stub_base_url, data, timeout=HTTP_TIMEOUT_SECONDS)
+            last_status, outcome = _classify_outcome(result)
             if outcome == "success":
-                _finalize(conn, item_id, worker_id, "succeeded", annotation=annotation, extracted_text=extracted)
-                return
-            if outcome == "invalid_request":
-                _finalize(conn, item_id, worker_id, "annotation_invalid_request",
-                          extracted_text=extracted, reason={"code": "invalid_request", "attempt": attempt})
-                return
-            # retryable: server_error, over_capacity, timeout, connection_error
-            if attempt < MAX_ATTEMPTS:
-                time.sleep(_backoff_delay(attempt))
+                annotation = result.body
+                # Commit the cache row BEFORE the attempt row is marked complete. These
+                # two commits are strictly sequential on one connection, so a later commit
+                # cannot be durable unless the earlier one is: if a crash here leaves a
+                # completed 'success' attempt behind, its cache row is guaranteed to exist,
+                # and the recovery path at the top of this function can finalize from it.
+                # The reverse order left a window where an attempt said "success" with no
+                # annotation anywhere — reported as success with an empty annotation.
+                # This still satisfies D-09: the attempt UPDATE commits after the HTTP call
+                # returns, just before rather than after the cache write.
+                conn.execute(
+                    "INSERT INTO annotations_cache (tenant, sha256, annotation) VALUES (%s, %s, %s) "
+                    "ON CONFLICT (tenant, sha256) DO NOTHING",
+                    (tenant, item["sha256"], json.dumps(annotation)),
+                )
+                conn.commit()
+            complete_attempt(conn, attempt_id, last_status, outcome)
+        finally:
+            release_slot(conn, slot_id, worker_id)
 
-        _finalize(conn, item_id, worker_id, "annotation_failed", extracted_text=extracted,
-                  reason={"code": "annotation_failed", "attempts": MAX_ATTEMPTS, "last_status": last_status})
+        if outcome == "success":
+            _finalize(conn, item_id, worker_id, "succeeded", annotation=annotation, extracted_text=extracted)
+        elif outcome == "invalid_request":
+            _finalize(conn, item_id, worker_id, "annotation_invalid_request",
+                      extracted_text=extracted, reason={"code": "invalid_request", "attempt": attempt_no})
+        elif attempt_no >= MAX_ATTEMPTS:
+            _finalize(conn, item_id, worker_id, "annotation_failed", extracted_text=extracted,
+                      reason={"code": "annotation_failed", "attempts": attempt_no, "last_status": last_status})
+        else:
+            # Retryable (server_error, over_capacity, timeout, connection_error): release the
+            # item rather than retrying in place (D-05) — any worker's next claim can pick it
+            # up once next_attempt_after passes, and this worker goes straight back to claiming
+            # other work instead of blocking on a sleep.
+            delay = _backoff_delay(attempt_no)
+            conn.execute(
+                "UPDATE items SET state = 'pending', leased_by = NULL, leased_until = NULL, "
+                "next_attempt_after = now() + %(delay)s * interval '1 second' "
+                "WHERE item_id = %(item_id)s AND leased_by = %(worker_id)s",
+                {"delay": delay, "item_id": item_id, "worker_id": worker_id},
+            )
+            conn.commit()
     finally:
         renewer.stop()
 

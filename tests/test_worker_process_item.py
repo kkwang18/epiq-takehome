@@ -225,24 +225,85 @@ def test_400_terminates_immediately_as_invalid_request(db_conn, tmp_path):
     assert len(calls) == 1  # no retries
 
 
-def test_exhausted_retries_lands_in_annotation_failed(db_conn, tmp_path, monkeypatch):
+def test_retryable_failure_releases_item_instead_of_looping(db_conn, tmp_path):
+    ensure_slots(db_conn, 2)
+    item_id = _insert_item(db_conn, tmp_path)
+    calls = []
+
+    def handler(request):
+        calls.append(1)
+        return httpx.Response(500, json={"error": {"code": "server_error"}})
+
+    claimed = claim_item(db_conn, "worker-0", lease_seconds=5)
+    process_item(db_conn, connect,
+                 claimed, tmp_path, httpx.Client(transport=httpx.MockTransport(handler)), "http://stub", "worker-0")
+    assert len(calls) == 1  # exactly one attempt this call, not an internal loop
+    row = db_conn.execute(
+        "SELECT state, leased_by, leased_until, next_attempt_after FROM items WHERE item_id = %s",
+        (item_id,),
+    ).fetchone()
+    assert row["state"] == "pending"
+    assert row["leased_by"] is None
+    assert row["leased_until"] is None
+    assert row["next_attempt_after"] is not None
+    attempts = db_conn.execute(
+        "SELECT COUNT(*) AS n FROM item_attempts WHERE item_id = %s", (item_id,)
+    ).fetchone()
+    assert attempts["n"] == 1
+
+
+def test_five_claims_of_a_permanently_failing_item_lands_in_annotation_failed(db_conn, tmp_path):
     ensure_slots(db_conn, 2)
     item_id = _insert_item(db_conn, tmp_path)
 
     def handler(request):
         return httpx.Response(500, json={"error": {"code": "server_error"}})
 
-    import content_intake.pipeline.worker as worker_mod
-    monkeypatch.setattr(worker_mod, "BACKOFF_BASE", 0.001)
-    monkeypatch.setattr(worker_mod, "BACKOFF_CAP", 0.002)
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    for i in range(5):
+        # simulate the item's next_attempt_after having already passed by clearing it,
+        # since this test doesn't want to wait on real backoff timers
+        db_conn.execute(
+            "UPDATE items SET next_attempt_after = NULL WHERE item_id = %s", (item_id,)
+        )
+        db_conn.commit()
+        claimed = claim_item(db_conn, f"worker-{i}", lease_seconds=5)
+        assert claimed is not None, f"claim {i} returned nothing"
+        process_item(db_conn, connect, claimed, tmp_path, client, "http://stub", f"worker-{i}")
 
-    claimed = claim_item(db_conn, "worker-0", lease_seconds=30)
-    process_item(db_conn, connect,
-                 claimed, tmp_path, httpx.Client(transport=httpx.MockTransport(handler)), "http://stub", "worker-0")
+    row = db_conn.execute("SELECT state, reason FROM items WHERE item_id = %s", (item_id,)).fetchone()
+    assert row["state"] == "annotation_failed"
+    assert row["reason"]["attempts"] == 5
+    attempts = db_conn.execute(
+        "SELECT COUNT(*) AS n FROM item_attempts WHERE item_id = %s", (item_id,)
+    ).fetchone()
+    assert attempts["n"] == 5
+
+
+def test_claim_time_cap_enforced_even_after_a_worker_death_resets_nothing(db_conn, tmp_path):
+    # Simulates 5 attempts already durably recorded (as if by workers that then died before
+    # finalizing), and asserts a FRESH claim of this item does not make a 6th HTTP call —
+    # it must finalize as annotation_failed purely from the durable count.
+    ensure_slots(db_conn, 2)
+    item_id = _insert_item(db_conn, tmp_path)
+    for i in range(5):
+        attempt_id = str(uuid.uuid4())
+        db_conn.execute(
+            "INSERT INTO item_attempts (attempt_id, item_id, tenant, attempt_no, started_at, "
+            "worker_id, slot_id, completed_at, http_status, outcome) "
+            "VALUES (%s, %s, 'tenant-a', %s, now(), 'worker-dead', 1, now(), 500, 'server_error')",
+            (attempt_id, item_id, i + 1),
+        )
+    db_conn.commit()
+
+    def handler(request):
+        raise AssertionError("must not call the stub once the durable cap is already reached")
+
+    claimed = claim_item(db_conn, "worker-0", lease_seconds=5)
+    process_item(db_conn, connect, claimed, tmp_path,
+                 httpx.Client(transport=httpx.MockTransport(handler)), "http://stub", "worker-0")
     row = db_conn.execute("SELECT state FROM items WHERE item_id = %s", (item_id,)).fetchone()
     assert row["state"] == "annotation_failed"
-    attempts = db_conn.execute("SELECT COUNT(*) AS n FROM item_attempts WHERE item_id = %s", (item_id,)).fetchone()
-    assert attempts["n"] == 5
 
 
 def test_start_attempt_race_is_handled_without_crashing(db_conn, tmp_path, monkeypatch):
