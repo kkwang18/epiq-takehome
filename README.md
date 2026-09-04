@@ -48,7 +48,9 @@ the terminal that launched them.
 
 ## Testing
 
-Postgres must be up for the pipeline tests (`./intake up` or `docker compose up -d postgres`).
+Postgres must be up for the pipeline tests — use `docker compose up -d postgres` for this, not
+`./intake up`. The latter also starts 4 real worker processes, which will race the tests for any
+`pending` item they insert (e.g. `tests/test_worker_loop.py`), causing spurious failures or hangs.
 
 ```bash
 source .venv/bin/activate
