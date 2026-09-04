@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS items (
     state TEXT NOT NULL DEFAULT 'pending',
     leased_by TEXT,
     leased_until TIMESTAMPTZ,
+    next_attempt_after TIMESTAMPTZ,
     reason JSONB,
     extracted_text TEXT,
     annotation JSONB,
@@ -42,6 +43,10 @@ CREATE TABLE IF NOT EXISTS items (
 -- "callers must supply it" contract the CREATE TABLE declares.
 ALTER TABLE items ADD COLUMN IF NOT EXISTS order_index INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE items ALTER COLUMN order_index DROP DEFAULT;
+
+-- Migration for databases created before next_attempt_after existed. Nullable, so no
+-- backfill/DROP DEFAULT dance is needed the way order_index required.
+ALTER TABLE items ADD COLUMN IF NOT EXISTS next_attempt_after TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_items_claim ON items (state, leased_until);
 CREATE INDEX IF NOT EXISTS idx_items_run_state ON items (run_id, state);

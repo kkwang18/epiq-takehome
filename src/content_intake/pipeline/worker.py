@@ -32,12 +32,17 @@ def claim_item(conn, worker_id: str, lease_seconds: int) -> dict | None:
             leased_until = now() + %(lease_seconds)s * interval '1 second'
         WHERE item_id = (
             SELECT item_id FROM items
-            WHERE state = 'pending' OR (state = 'in_progress' AND leased_until < now())
-            -- created_at keeps cross-run FIFO by submission time; order_index breaks the
-            -- tie *within* a run, where every row shares one transaction timestamp. Without
-            -- it the claim order inside a run is arbitrary heap order, and a duplicate can
-            -- be claimed before its original -- missing the cache and burning a billed call.
-            ORDER BY created_at, order_index
+            WHERE (state = 'pending' AND (next_attempt_after IS NULL OR next_attempt_after <= now()))
+               OR (state = 'in_progress' AND leased_until < now())
+            -- order_index first (D-15): every item in a run shares one created_at (submit_run's
+            -- single transaction), so created_at-first would let one run's whole backlog drain
+            -- before a concurrently-submitted second run is ever touched. order_index starts at
+            -- 0 independently per run, so sorting by it first interleaves runs fairly ("position
+            -- 0 from whichever run has one, then position 1, ..."), while created_at still
+            -- breaks ties and order_index still keeps originals ahead of their duplicates within
+            -- one run (D-02) exactly as before. next_attempt_after is D-05's backoff timer: a
+            -- pending item that just failed a retryable attempt isn't reclaimable until it passes.
+            ORDER BY order_index, created_at
             LIMIT 1
             FOR UPDATE SKIP LOCKED
         )
@@ -46,12 +51,12 @@ def claim_item(conn, worker_id: str, lease_seconds: int) -> dict | None:
         {"worker_id": worker_id, "lease_seconds": lease_seconds},
     ).fetchone()
     conn.commit()
-    if row is not None:
-        # psycopg3 loads uuid columns as uuid.UUID objects; normalize to str so
-        # callers (and equality checks against str ids) see the same id type
-        # that's used everywhere else in this codebase.
-        row = {k: (str(v) if isinstance(v, uuid.UUID) else v) for k, v in row.items()}
-    return row
+    if row is None:
+        return None
+    # psycopg3 loads uuid columns as uuid.UUID objects; normalize to str so
+    # callers (and equality checks against str ids) see the same id type
+    # that's used everywhere else in this codebase.
+    return {k: (str(v) if isinstance(v, uuid.UUID) else v) for k, v in row.items()}
 
 
 class LeaseRenewer:
