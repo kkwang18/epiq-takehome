@@ -6,3 +6,4 @@ __pycache__/
 .intake_logs/
 /tmp_corpus/
 .pytest_cache/
+.scenario_corpora/

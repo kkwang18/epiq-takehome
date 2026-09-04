@@ -11,6 +11,7 @@ from content_intake.cli.lifecycle_cmd import (
     add_up_parser, run_up, add_down_parser, run_down, add_reset_parser, run_reset,
 )
 from content_intake.cli.kill_worker_cmd import add_kill_worker_parser, run_kill_worker
+from content_intake.cli.scenario_cmd import add_scenario_parser, run_scenario
 
 
 def main(argv=None) -> int:
@@ -27,6 +28,7 @@ def main(argv=None) -> int:
     add_down_parser(subparsers)
     add_reset_parser(subparsers)
     add_kill_worker_parser(subparsers)
+    add_scenario_parser(subparsers)
     args = parser.parse_args(argv)
 
     if args.command == "version":
@@ -52,6 +54,8 @@ def main(argv=None) -> int:
         return run_reset(args)
     if args.command == "kill-worker":
         return run_kill_worker(args)
+    if args.command == "scenario":
+        return run_scenario(args)
 
     parser.print_help()
     return 1
