@@ -4,14 +4,14 @@
     "description": "killed worker owned a nonterminal item",
     "mandatory": true,
     "passed": true,
-    "detail": "{'worker_id': 'worker-2', 'index': 2, 'item_id': 'e960ee00-b331-468c-9f3c-e42d2c1865dd', 'kill_time': 1788532662.792564, 'recovered_time': 1788532667.646222}"
+    "detail": "{'worker_id': 'worker-3', 'index': 3, 'item_id': 'bed194e2-7ad1-4d73-9d49-3dae03e7b7be', 'kill_time': 1788551352.090951, 'recovered_time': 1788551357.191527}"
   },
   {
     "id": "A2",
     "description": "recovery within 10s, every item terminates",
     "mandatory": true,
     "passed": true,
-    "detail": "recovery_seconds=4.853658199310303"
+    "detail": "recovery_seconds=5.100575923919678"
   },
   {
     "id": "A3",

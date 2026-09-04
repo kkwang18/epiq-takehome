@@ -1,6 +1,6 @@
 [
   {
-    "t": 1788532569.223722,
+    "t": 1788551260.047294,
     "run_a": {
       "terminal": 0,
       "nonterminal": 500
@@ -11,21 +11,21 @@
     }
   },
   {
-    "t": 1788532569.780389,
+    "t": 1788551260.614165,
     "run_a": {
-      "terminal": 2,
-      "nonterminal": 498
+      "terminal": 1,
+      "nonterminal": 499
     },
     "run_b": {
-      "terminal": 2,
-      "nonterminal": 398
+      "terminal": 3,
+      "nonterminal": 397
     }
   },
   {
-    "t": 1788532570.335965,
+    "t": 1788551261.157086,
     "run_a": {
-      "terminal": 3,
-      "nonterminal": 497
+      "terminal": 4,
+      "nonterminal": 496
     },
     "run_b": {
       "terminal": 5,
@@ -33,7 +33,7 @@
     }
   },
   {
-    "t": 1788532570.8921542,
+    "t": 1788551261.707734,
     "run_a": {
       "terminal": 7,
       "nonterminal": 493
@@ -44,7 +44,7 @@
     }
   },
   {
-    "t": 1788532571.436183,
+    "t": 1788551262.264435,
     "run_a": {
       "terminal": 10,
       "nonterminal": 490
@@ -55,7 +55,7 @@
     }
   },
   {
-    "t": 1788532571.9887412,
+    "t": 1788551262.817478,
     "run_a": {
       "terminal": 12,
       "nonterminal": 488
@@ -66,10 +66,10 @@
     }
   },
   {
-    "t": 1788532572.5436852,
+    "t": 1788551263.353514,
     "run_a": {
-      "terminal": 14,
-      "nonterminal": 486
+      "terminal": 15,
+      "nonterminal": 485
     },
     "run_b": {
       "terminal": 15,
@@ -77,7 +77,7 @@
     }
   },
   {
-    "t": 1788532573.0978198,
+    "t": 1788551263.89746,
     "run_a": {
       "terminal": 17,
       "nonterminal": 483
@@ -88,51 +88,51 @@
     }
   },
   {
-    "t": 1788532573.661969,
+    "t": 1788551264.4475079,
     "run_a": {
-      "terminal": 20,
-      "nonterminal": 480
+      "terminal": 21,
+      "nonterminal": 479
     },
     "run_b": {
-      "terminal": 20,
-      "nonterminal": 380
+      "terminal": 19,
+      "nonterminal": 381
     }
   },
   {
-    "t": 1788532574.221483,
+    "t": 1788551264.996497,
     "run_a": {
-      "terminal": 23,
-      "nonterminal": 477
-    },
-    "run_b": {
       "terminal": 22,
-      "nonterminal": 378
-    }
-  },
-  {
-    "t": 1788532574.757687,
-    "run_a": {
-      "terminal": 26,
-      "nonterminal": 474
+      "nonterminal": 478
     },
     "run_b": {
-      "terminal": 24,
-      "nonterminal": 376
+      "terminal": 23,
+      "nonterminal": 377
     }
   },
   {
-    "t": 1788532575.3069382,
+    "t": 1788551265.544155,
     "run_a": {
-      "terminal": 29,
-      "nonterminal": 471
+      "terminal": 25,
+      "nonterminal": 475
     },
     "run_b": {
-      "terminal": 26,
-      "nonterminal": 374
+      "terminal": 25,
+      "nonterminal": 375
     }
   },
   {
-    "t": 1788532575.860584,
+    "t": 1788551266.077556,
+    "run_a": {
+      "terminal": 28,
+      "nonterminal": 472
+    },
+    "run_b": {
+      "terminal": 27,
+      "nonterminal": 373
+    }
+  },
+  {
+    "t": 1788551266.612451,
     "run_a": {
       "terminal": 31,
       "nonterminal": 469
@@ -143,21 +143,10 @@
     }
   },
   {
-    "t": 1788532576.3982441,
+    "t": 1788551267.1408691,
     "run_a": {
-      "terminal": 33,
-      "nonterminal": 467
-    },
-    "run_b": {
       "terminal": 32,
-      "nonterminal": 368
-    }
-  },
-  {
-    "t": 1788532576.957278,
-    "run_a": {
-      "terminal": 37,
-      "nonterminal": 463
+      "nonterminal": 468
     },
     "run_b": {
       "terminal": 34,
@@ -165,21 +154,32 @@
     }
   },
   {
-    "t": 1788532577.499524,
+    "t": 1788551267.709016,
     "run_a": {
-      "terminal": 38,
-      "nonterminal": 462
+      "terminal": 35,
+      "nonterminal": 465
     },
     "run_b": {
-      "terminal": 38,
-      "nonterminal": 362
+      "terminal": 36,
+      "nonterminal": 364
     }
   },
   {
-    "t": 1788532578.059308,
+    "t": 1788551268.272691,
     "run_a": {
-      "terminal": 41,
-      "nonterminal": 459
+      "terminal": 37,
+      "nonterminal": 463
+    },
+    "run_b": {
+      "terminal": 37,
+      "nonterminal": 363
+    }
+  },
+  {
+    "t": 1788551268.82884,
+    "run_a": {
+      "terminal": 40,
+      "nonterminal": 460
     },
     "run_b": {
       "terminal": 40,
@@ -187,18 +187,18 @@
     }
   },
   {
-    "t": 1788532578.636044,
+    "t": 1788551269.410099,
     "run_a": {
-      "terminal": 42,
-      "nonterminal": 458
+      "terminal": 44,
+      "nonterminal": 456
     },
     "run_b": {
-      "terminal": 43,
-      "nonterminal": 357
+      "terminal": 42,
+      "nonterminal": 358
     }
   },
   {
-    "t": 1788532579.196927,
+    "t": 1788551269.960646,
     "run_a": {
       "terminal": 45,
       "nonterminal": 455
@@ -209,18 +209,18 @@
     }
   },
   {
-    "t": 1788532579.740918,
+    "t": 1788551270.5157719,
     "run_a": {
-      "terminal": 49,
-      "nonterminal": 451
+      "terminal": 48,
+      "nonterminal": 452
     },
     "run_b": {
-      "terminal": 47,
-      "nonterminal": 353
+      "terminal": 48,
+      "nonterminal": 352
     }
   },
   {
-    "t": 1788532580.297624,
+    "t": 1788551271.06898,
     "run_a": {
       "terminal": 52,
       "nonterminal": 448
@@ -231,7 +231,7 @@
     }
   },
   {
-    "t": 1788532580.852849,
+    "t": 1788551271.639599,
     "run_a": {
       "terminal": 55,
       "nonterminal": 445
@@ -242,7 +242,7 @@
     }
   },
   {
-    "t": 1788532581.40664,
+    "t": 1788551272.20518,
     "run_a": {
       "terminal": 56,
       "nonterminal": 444
@@ -253,43 +253,43 @@
     }
   },
   {
-    "t": 1788532581.94102,
+    "t": 1788551272.777303,
     "run_a": {
-      "terminal": 59,
-      "nonterminal": 441
+      "terminal": 60,
+      "nonterminal": 440
     },
     "run_b": {
-      "terminal": 58,
-      "nonterminal": 342
+      "terminal": 57,
+      "nonterminal": 343
     }
   },
   {
-    "t": 1788532582.491489,
+    "t": 1788551273.3416011,
     "run_a": {
-      "terminal": 61,
-      "nonterminal": 439
+      "terminal": 62,
+      "nonterminal": 438
     },
     "run_b": {
-      "terminal": 61,
-      "nonterminal": 339
+      "terminal": 60,
+      "nonterminal": 340
     }
   },
   {
-    "t": 1788532583.056941,
+    "t": 1788551273.902018,
     "run_a": {
-      "terminal": 63,
-      "nonterminal": 437
-    },
-    "run_b": {
       "terminal": 64,
-      "nonterminal": 336
+      "nonterminal": 436
+    },
+    "run_b": {
+      "terminal": 63,
+      "nonterminal": 337
     }
   },
   {
-    "t": 1788532583.603093,
+    "t": 1788551274.465337,
     "run_a": {
-      "terminal": 66,
-      "nonterminal": 434
+      "terminal": 67,
+      "nonterminal": 433
     },
     "run_b": {
       "terminal": 66,
@@ -297,21 +297,21 @@
     }
   },
   {
-    "t": 1788532584.1619148,
+    "t": 1788551275.0290759,
     "run_a": {
-      "terminal": 68,
-      "nonterminal": 432
+      "terminal": 69,
+      "nonterminal": 431
     },
     "run_b": {
-      "terminal": 70,
-      "nonterminal": 330
+      "terminal": 69,
+      "nonterminal": 331
     }
   },
   {
-    "t": 1788532584.723868,
+    "t": 1788551275.588423,
     "run_a": {
-      "terminal": 70,
-      "nonterminal": 430
+      "terminal": 72,
+      "nonterminal": 428
     },
     "run_b": {
       "terminal": 72,
@@ -319,10 +319,10 @@
     }
   },
   {
-    "t": 1788532585.282104,
+    "t": 1788551276.154965,
     "run_a": {
-      "terminal": 74,
-      "nonterminal": 426
+      "terminal": 76,
+      "nonterminal": 424
     },
     "run_b": {
       "terminal": 74,
@@ -330,43 +330,43 @@
     }
   },
   {
-    "t": 1788532585.8370712,
+    "t": 1788551276.71407,
     "run_a": {
+      "terminal": 79,
+      "nonterminal": 421
+    },
+    "run_b": {
       "terminal": 76,
-      "nonterminal": 424
-    },
-    "run_b": {
-      "terminal": 77,
-      "nonterminal": 323
+      "nonterminal": 324
     }
   },
   {
-    "t": 1788532586.3791401,
+    "t": 1788551277.26833,
     "run_a": {
-      "terminal": 78,
-      "nonterminal": 422
+      "terminal": 79,
+      "nonterminal": 421
     },
     "run_b": {
-      "terminal": 80,
-      "nonterminal": 320
+      "terminal": 81,
+      "nonterminal": 319
     }
   },
   {
-    "t": 1788532586.943936,
+    "t": 1788551277.822474,
     "run_a": {
-      "terminal": 80,
-      "nonterminal": 420
-    },
-    "run_b": {
       "terminal": 83,
-      "nonterminal": 317
+      "nonterminal": 417
+    },
+    "run_b": {
+      "terminal": 82,
+      "nonterminal": 318
     }
   },
   {
-    "t": 1788532587.494984,
+    "t": 1788551278.385078,
     "run_a": {
-      "terminal": 84,
-      "nonterminal": 416
+      "terminal": 86,
+      "nonterminal": 414
     },
     "run_b": {
       "terminal": 84,
@@ -374,10 +374,10 @@
     }
   },
   {
-    "t": 1788532588.05826,
+    "t": 1788551278.945069,
     "run_a": {
-      "terminal": 87,
-      "nonterminal": 413
+      "terminal": 88,
+      "nonterminal": 412
     },
     "run_b": {
       "terminal": 87,
@@ -385,32 +385,21 @@
     }
   },
   {
-    "t": 1788532588.636606,
+    "t": 1788551279.508136,
     "run_a": {
-      "terminal": 89,
-      "nonterminal": 411
+      "terminal": 90,
+      "nonterminal": 410
     },
     "run_b": {
-      "terminal": 88,
-      "nonterminal": 312
+      "terminal": 90,
+      "nonterminal": 310
     }
   },
   {
-    "t": 1788532589.211308,
+    "t": 1788551280.0999029,
     "run_a": {
-      "terminal": 91,
-      "nonterminal": 409
-    },
-    "run_b": {
-      "terminal": 93,
-      "nonterminal": 307
-    }
-  },
-  {
-    "t": 1788532589.749991,
-    "run_a": {
-      "terminal": 96,
-      "nonterminal": 404
+      "terminal": 94,
+      "nonterminal": 406
     },
     "run_b": {
       "terminal": 93,
@@ -418,54 +407,54 @@
     }
   },
   {
-    "t": 1788532590.290883,
+    "t": 1788551280.664865,
     "run_a": {
       "terminal": 97,
       "nonterminal": 403
     },
     "run_b": {
-      "terminal": 97,
-      "nonterminal": 303
+      "terminal": 95,
+      "nonterminal": 305
     }
   },
   {
-    "t": 1788532590.826517,
+    "t": 1788551281.2198231,
     "run_a": {
-      "terminal": 101,
-      "nonterminal": 399
+      "terminal": 99,
+      "nonterminal": 401
     },
     "run_b": {
-      "terminal": 98,
-      "nonterminal": 302
+      "terminal": 99,
+      "nonterminal": 301
     }
   },
   {
-    "t": 1788532591.3707578,
+    "t": 1788551281.7708402,
     "run_a": {
       "terminal": 102,
       "nonterminal": 398
     },
     "run_b": {
-      "terminal": 102,
-      "nonterminal": 298
+      "terminal": 101,
+      "nonterminal": 299
     }
   },
   {
-    "t": 1788532591.9130602,
+    "t": 1788551282.322556,
     "run_a": {
-      "terminal": 106,
-      "nonterminal": 394
+      "terminal": 105,
+      "nonterminal": 395
     },
     "run_b": {
-      "terminal": 104,
-      "nonterminal": 296
+      "terminal": 103,
+      "nonterminal": 297
     }
   },
   {
-    "t": 1788532592.464514,
+    "t": 1788551282.886492,
     "run_a": {
-      "terminal": 109,
-      "nonterminal": 391
+      "terminal": 107,
+      "nonterminal": 393
     },
     "run_b": {
       "terminal": 106,
@@ -473,10 +462,10 @@
     }
   },
   {
-    "t": 1788532593.0081978,
+    "t": 1788551283.430491,
     "run_a": {
-      "terminal": 111,
-      "nonterminal": 389
+      "terminal": 109,
+      "nonterminal": 391
     },
     "run_b": {
       "terminal": 109,
@@ -484,43 +473,43 @@
     }
   },
   {
-    "t": 1788532593.574184,
+    "t": 1788551283.98081,
     "run_a": {
       "terminal": 112,
       "nonterminal": 388
     },
     "run_b": {
-      "terminal": 112,
-      "nonterminal": 288
+      "terminal": 111,
+      "nonterminal": 289
     }
   },
   {
-    "t": 1788532594.1443079,
+    "t": 1788551284.535037,
     "run_a": {
-      "terminal": 114,
-      "nonterminal": 386
-    },
-    "run_b": {
       "terminal": 115,
-      "nonterminal": 285
-    }
-  },
-  {
-    "t": 1788532594.713129,
-    "run_a": {
-      "terminal": 117,
-      "nonterminal": 383
+      "nonterminal": 385
     },
     "run_b": {
-      "terminal": 117,
-      "nonterminal": 283
+      "terminal": 113,
+      "nonterminal": 287
     }
   },
   {
-    "t": 1788532595.2754052,
+    "t": 1788551285.090476,
     "run_a": {
-      "terminal": 121,
-      "nonterminal": 379
+      "terminal": 116,
+      "nonterminal": 384
+    },
+    "run_b": {
+      "terminal": 118,
+      "nonterminal": 282
+    }
+  },
+  {
+    "t": 1788551285.6433668,
+    "run_a": {
+      "terminal": 120,
+      "nonterminal": 380
     },
     "run_b": {
       "terminal": 119,
@@ -528,10 +517,10 @@
     }
   },
   {
-    "t": 1788532595.846281,
+    "t": 1788551286.209056,
     "run_a": {
-      "terminal": 123,
-      "nonterminal": 377
+      "terminal": 122,
+      "nonterminal": 378
     },
     "run_b": {
       "terminal": 122,
@@ -539,21 +528,21 @@
     }
   },
   {
-    "t": 1788532596.392305,
+    "t": 1788551286.7831922,
     "run_a": {
-      "terminal": 125,
-      "nonterminal": 375
+      "terminal": 123,
+      "nonterminal": 377
     },
     "run_b": {
-      "terminal": 124,
-      "nonterminal": 276
+      "terminal": 126,
+      "nonterminal": 274
     }
   },
   {
-    "t": 1788532596.9450188,
+    "t": 1788551287.35843,
     "run_a": {
-      "terminal": 127,
-      "nonterminal": 373
+      "terminal": 126,
+      "nonterminal": 374
     },
     "run_b": {
       "terminal": 128,
@@ -561,32 +550,32 @@
     }
   },
   {
-    "t": 1788532597.49967,
+    "t": 1788551287.921644,
     "run_a": {
       "terminal": 130,
       "nonterminal": 370
     },
     "run_b": {
-      "terminal": 130,
-      "nonterminal": 270
+      "terminal": 129,
+      "nonterminal": 271
     }
   },
   {
-    "t": 1788532598.065967,
+    "t": 1788551288.486248,
     "run_a": {
       "terminal": 133,
       "nonterminal": 367
     },
     "run_b": {
-      "terminal": 132,
-      "nonterminal": 268
+      "terminal": 131,
+      "nonterminal": 269
     }
   },
   {
-    "t": 1788532598.6343281,
+    "t": 1788551289.0616162,
     "run_a": {
-      "terminal": 135,
-      "nonterminal": 365
+      "terminal": 136,
+      "nonterminal": 364
     },
     "run_b": {
       "terminal": 135,
@@ -594,7 +583,7 @@
     }
   },
   {
-    "t": 1788532599.195356,
+    "t": 1788551289.6263309,
     "run_a": {
       "terminal": 138,
       "nonterminal": 362
@@ -605,10 +594,10 @@
     }
   },
   {
-    "t": 1788532599.774657,
+    "t": 1788551290.197582,
     "run_a": {
-      "terminal": 141,
-      "nonterminal": 359
+      "terminal": 140,
+      "nonterminal": 360
     },
     "run_b": {
       "terminal": 141,
@@ -616,7 +605,7 @@
     }
   },
   {
-    "t": 1788532600.318356,
+    "t": 1788551290.799178,
     "run_a": {
       "terminal": 144,
       "nonterminal": 356
@@ -627,29 +616,29 @@
     }
   },
   {
-    "t": 1788532600.8598871,
+    "t": 1788551291.367536,
     "run_a": {
-      "terminal": 145,
-      "nonterminal": 355
+      "terminal": 146,
+      "nonterminal": 354
     },
     "run_b": {
-      "terminal": 147,
-      "nonterminal": 253
+      "terminal": 146,
+      "nonterminal": 254
     }
   },
   {
-    "t": 1788532601.407337,
+    "t": 1788551291.937902,
     "run_a": {
-      "terminal": 148,
-      "nonterminal": 352
-    },
-    "run_b": {
       "terminal": 149,
-      "nonterminal": 251
+      "nonterminal": 351
+    },
+    "run_b": {
+      "terminal": 148,
+      "nonterminal": 252
     }
   },
   {
-    "t": 1788532601.951822,
+    "t": 1788551292.5012522,
     "run_a": {
       "terminal": 151,
       "nonterminal": 349
@@ -660,98 +649,98 @@
     }
   },
   {
-    "t": 1788532602.499978,
+    "t": 1788551293.0676029,
     "run_a": {
-      "terminal": 154,
-      "nonterminal": 346
-    },
-    "run_b": {
       "terminal": 153,
-      "nonterminal": 247
+      "nonterminal": 347
+    },
+    "run_b": {
+      "terminal": 154,
+      "nonterminal": 246
     }
   },
   {
-    "t": 1788532603.042133,
+    "t": 1788551293.6276329,
     "run_a": {
-      "terminal": 156,
-      "nonterminal": 344
+      "terminal": 157,
+      "nonterminal": 343
     },
     "run_b": {
-      "terminal": 156,
-      "nonterminal": 244
+      "terminal": 155,
+      "nonterminal": 245
     }
   },
   {
-    "t": 1788532603.585941,
+    "t": 1788551294.183003,
     "run_a": {
-      "terminal": 158,
-      "nonterminal": 342
+      "terminal": 159,
+      "nonterminal": 341
     },
     "run_b": {
-      "terminal": 160,
-      "nonterminal": 240
+      "terminal": 159,
+      "nonterminal": 241
     }
   },
   {
-    "t": 1788532604.141504,
+    "t": 1788551294.7532952,
     "run_a": {
-      "terminal": 161,
-      "nonterminal": 339
-    },
-    "run_b": {
       "terminal": 162,
-      "nonterminal": 238
-    }
-  },
-  {
-    "t": 1788532604.708003,
-    "run_a": {
-      "terminal": 164,
-      "nonterminal": 336
+      "nonterminal": 338
     },
     "run_b": {
-      "terminal": 164,
-      "nonterminal": 236
+      "terminal": 161,
+      "nonterminal": 239
     }
   },
   {
-    "t": 1788532605.260339,
+    "t": 1788551295.324168,
+    "run_a": {
+      "terminal": 165,
+      "nonterminal": 335
+    },
+    "run_b": {
+      "terminal": 163,
+      "nonterminal": 237
+    }
+  },
+  {
+    "t": 1788551295.8911822,
     "run_a": {
       "terminal": 166,
       "nonterminal": 334
     },
     "run_b": {
-      "terminal": 167,
-      "nonterminal": 233
-    }
-  },
-  {
-    "t": 1788532605.798082,
-    "run_a": {
       "terminal": 168,
-      "nonterminal": 332
-    },
-    "run_b": {
-      "terminal": 170,
-      "nonterminal": 230
+      "nonterminal": 232
     }
   },
   {
-    "t": 1788532606.333389,
+    "t": 1788551296.4643772,
     "run_a": {
-      "terminal": 170,
-      "nonterminal": 330
+      "terminal": 171,
+      "nonterminal": 329
     },
     "run_b": {
-      "terminal": 173,
-      "nonterminal": 227
+      "terminal": 169,
+      "nonterminal": 231
     }
   },
   {
-    "t": 1788532606.874468,
+    "t": 1788551297.0258079,
     "run_a": {
-      "terminal": 174,
-      "nonterminal": 326
+      "terminal": 172,
+      "nonterminal": 328
+    },
+    "run_b": {
+      "terminal": 172,
+      "nonterminal": 228
+    }
+  },
+  {
+    "t": 1788551297.568646,
+    "run_a": {
+      "terminal": 175,
+      "nonterminal": 325
     },
     "run_b": {
       "terminal": 174,
@@ -759,43 +748,32 @@
     }
   },
   {
-    "t": 1788532607.421103,
+    "t": 1788551298.115129,
     "run_a": {
+      "terminal": 179,
+      "nonterminal": 321
+    },
+    "run_b": {
       "terminal": 176,
-      "nonterminal": 324
-    },
-    "run_b": {
-      "terminal": 178,
-      "nonterminal": 222
+      "nonterminal": 224
     }
   },
   {
-    "t": 1788532607.976969,
-    "run_a": {
-      "terminal": 178,
-      "nonterminal": 322
-    },
-    "run_b": {
-      "terminal": 180,
-      "nonterminal": 220
-    }
-  },
-  {
-    "t": 1788532608.540993,
+    "t": 1788551298.6699772,
     "run_a": {
       "terminal": 181,
       "nonterminal": 319
     },
     "run_b": {
-      "terminal": 182,
-      "nonterminal": 218
+      "terminal": 179,
+      "nonterminal": 221
     }
   },
   {
-    "t": 1788532609.091475,
+    "t": 1788551299.2337239,
     "run_a": {
-      "terminal": 184,
-      "nonterminal": 316
+      "terminal": 183,
+      "nonterminal": 317
     },
     "run_b": {
       "terminal": 183,
@@ -803,32 +781,32 @@
     }
   },
   {
-    "t": 1788532609.6526442,
+    "t": 1788551299.8040729,
     "run_a": {
       "terminal": 186,
       "nonterminal": 314
     },
     "run_b": {
-      "terminal": 188,
-      "nonterminal": 212
+      "terminal": 185,
+      "nonterminal": 215
     }
   },
   {
-    "t": 1788532610.208459,
+    "t": 1788551300.368025,
     "run_a": {
-      "terminal": 190,
-      "nonterminal": 310
+      "terminal": 188,
+      "nonterminal": 312
     },
     "run_b": {
-      "terminal": 189,
-      "nonterminal": 211
+      "terminal": 190,
+      "nonterminal": 210
     }
   },
   {
-    "t": 1788532610.7561479,
+    "t": 1788551300.942702,
     "run_a": {
-      "terminal": 193,
-      "nonterminal": 307
+      "terminal": 192,
+      "nonterminal": 308
     },
     "run_b": {
       "terminal": 191,
@@ -836,32 +814,32 @@
     }
   },
   {
-    "t": 1788532611.312783,
+    "t": 1788551301.5227551,
     "run_a": {
       "terminal": 195,
       "nonterminal": 305
     },
     "run_b": {
-      "terminal": 195,
-      "nonterminal": 205
+      "terminal": 193,
+      "nonterminal": 207
     }
   },
   {
-    "t": 1788532611.8714628,
+    "t": 1788551302.076603,
     "run_a": {
-      "terminal": 198,
-      "nonterminal": 302
+      "terminal": 197,
+      "nonterminal": 303
     },
     "run_b": {
-      "terminal": 197,
-      "nonterminal": 203
+      "terminal": 196,
+      "nonterminal": 204
     }
   },
   {
-    "t": 1788532612.4265192,
+    "t": 1788551302.621697,
     "run_a": {
-      "terminal": 201,
-      "nonterminal": 299
+      "terminal": 199,
+      "nonterminal": 301
     },
     "run_b": {
       "terminal": 199,
@@ -869,18 +847,18 @@
     }
   },
   {
-    "t": 1788532612.985985,
+    "t": 1788551303.175659,
     "run_a": {
-      "terminal": 202,
-      "nonterminal": 298
+      "terminal": 203,
+      "nonterminal": 297
     },
     "run_b": {
-      "terminal": 202,
-      "nonterminal": 198
+      "terminal": 200,
+      "nonterminal": 200
     }
   },
   {
-    "t": 1788532613.54774,
+    "t": 1788551303.739635,
     "run_a": {
       "terminal": 205,
       "nonterminal": 295
@@ -891,43 +869,43 @@
     }
   },
   {
-    "t": 1788532614.118458,
+    "t": 1788551304.311266,
     "run_a": {
-      "terminal": 208,
-      "nonterminal": 292
+      "terminal": 207,
+      "nonterminal": 293
     },
     "run_b": {
-      "terminal": 206,
-      "nonterminal": 194
+      "terminal": 207,
+      "nonterminal": 193
     }
   },
   {
-    "t": 1788532614.67875,
+    "t": 1788551304.875802,
     "run_a": {
-      "terminal": 211,
-      "nonterminal": 289
-    },
-    "run_b": {
       "terminal": 209,
-      "nonterminal": 191
-    }
-  },
-  {
-    "t": 1788532615.2162309,
-    "run_a": {
-      "terminal": 214,
-      "nonterminal": 286
+      "nonterminal": 291
     },
     "run_b": {
-      "terminal": 212,
-      "nonterminal": 188
+      "terminal": 211,
+      "nonterminal": 189
     }
   },
   {
-    "t": 1788532615.763296,
+    "t": 1788551305.437933,
     "run_a": {
-      "terminal": 216,
-      "nonterminal": 284
+      "terminal": 212,
+      "nonterminal": 288
+    },
+    "run_b": {
+      "terminal": 213,
+      "nonterminal": 187
+    }
+  },
+  {
+    "t": 1788551305.996269,
+    "run_a": {
+      "terminal": 215,
+      "nonterminal": 285
     },
     "run_b": {
       "terminal": 215,
@@ -935,7 +913,7 @@
     }
   },
   {
-    "t": 1788532616.329995,
+    "t": 1788551306.558484,
     "run_a": {
       "terminal": 219,
       "nonterminal": 281
@@ -946,18 +924,18 @@
     }
   },
   {
-    "t": 1788532616.893708,
+    "t": 1788551307.105998,
     "run_a": {
       "terminal": 220,
       "nonterminal": 280
     },
     "run_b": {
-      "terminal": 220,
-      "nonterminal": 180
+      "terminal": 221,
+      "nonterminal": 179
     }
   },
   {
-    "t": 1788532617.429738,
+    "t": 1788551307.663496,
     "run_a": {
       "terminal": 222,
       "nonterminal": 278
@@ -968,65 +946,65 @@
     }
   },
   {
-    "t": 1788532617.9855812,
+    "t": 1788551308.2183402,
     "run_a": {
-      "terminal": 225,
-      "nonterminal": 275
+      "terminal": 224,
+      "nonterminal": 276
     },
     "run_b": {
-      "terminal": 226,
-      "nonterminal": 174
+      "terminal": 227,
+      "nonterminal": 173
     }
   },
   {
-    "t": 1788532618.5548868,
+    "t": 1788551308.769141,
     "run_a": {
       "terminal": 227,
       "nonterminal": 273
     },
     "run_b": {
-      "terminal": 228,
-      "nonterminal": 172
+      "terminal": 229,
+      "nonterminal": 171
     }
   },
   {
-    "t": 1788532619.097773,
+    "t": 1788551309.332085,
     "run_a": {
-      "terminal": 230,
-      "nonterminal": 270
+      "terminal": 231,
+      "nonterminal": 269
     },
     "run_b": {
-      "terminal": 230,
-      "nonterminal": 170
+      "terminal": 231,
+      "nonterminal": 169
     }
   },
   {
-    "t": 1788532619.648221,
+    "t": 1788551309.897469,
     "run_a": {
-      "terminal": 235,
-      "nonterminal": 265
+      "terminal": 233,
+      "nonterminal": 267
     },
     "run_b": {
-      "terminal": 232,
-      "nonterminal": 168
+      "terminal": 234,
+      "nonterminal": 166
     }
   },
   {
-    "t": 1788532620.204129,
+    "t": 1788551310.462105,
     "run_a": {
-      "terminal": 237,
-      "nonterminal": 263
+      "terminal": 236,
+      "nonterminal": 264
     },
     "run_b": {
-      "terminal": 235,
-      "nonterminal": 165
+      "terminal": 236,
+      "nonterminal": 164
     }
   },
   {
-    "t": 1788532620.7863832,
+    "t": 1788551311.041792,
     "run_a": {
-      "terminal": 238,
-      "nonterminal": 262
+      "terminal": 239,
+      "nonterminal": 261
     },
     "run_b": {
       "terminal": 238,
@@ -1034,29 +1012,29 @@
     }
   },
   {
-    "t": 1788532621.328575,
+    "t": 1788551311.6116428,
     "run_a": {
-      "terminal": 242,
-      "nonterminal": 258
+      "terminal": 241,
+      "nonterminal": 259
     },
     "run_b": {
-      "terminal": 240,
-      "nonterminal": 160
+      "terminal": 241,
+      "nonterminal": 159
     }
   },
   {
-    "t": 1788532621.875,
+    "t": 1788551312.2022521,
     "run_a": {
-      "terminal": 245,
-      "nonterminal": 255
+      "terminal": 243,
+      "nonterminal": 257
     },
     "run_b": {
-      "terminal": 242,
-      "nonterminal": 158
+      "terminal": 244,
+      "nonterminal": 156
     }
   },
   {
-    "t": 1788532622.418127,
+    "t": 1788551312.772147,
     "run_a": {
       "terminal": 247,
       "nonterminal": 253
@@ -1067,43 +1045,43 @@
     }
   },
   {
-    "t": 1788532622.96397,
+    "t": 1788551313.347866,
     "run_a": {
       "terminal": 249,
       "nonterminal": 251
     },
     "run_b": {
-      "terminal": 248,
-      "nonterminal": 152
+      "terminal": 250,
+      "nonterminal": 150
     }
   },
   {
-    "t": 1788532623.5206149,
+    "t": 1788551313.9045,
     "run_a": {
       "terminal": 252,
       "nonterminal": 248
     },
     "run_b": {
-      "terminal": 251,
-      "nonterminal": 149
+      "terminal": 252,
+      "nonterminal": 148
     }
   },
   {
-    "t": 1788532624.076013,
+    "t": 1788551314.468672,
     "run_a": {
-      "terminal": 255,
-      "nonterminal": 245
+      "terminal": 253,
+      "nonterminal": 247
     },
     "run_b": {
-      "terminal": 253,
-      "nonterminal": 147
+      "terminal": 256,
+      "nonterminal": 144
     }
   },
   {
-    "t": 1788532624.6169128,
+    "t": 1788551315.027308,
     "run_a": {
-      "terminal": 256,
-      "nonterminal": 244
+      "terminal": 258,
+      "nonterminal": 242
     },
     "run_b": {
       "terminal": 257,
@@ -1111,54 +1089,54 @@
     }
   },
   {
-    "t": 1788532625.164331,
-    "run_a": {
-      "terminal": 258,
-      "nonterminal": 242
-    },
-    "run_b": {
-      "terminal": 260,
-      "nonterminal": 140
-    }
-  },
-  {
-    "t": 1788532625.728887,
+    "t": 1788551315.591999,
     "run_a": {
       "terminal": 260,
       "nonterminal": 240
     },
     "run_b": {
-      "terminal": 263,
-      "nonterminal": 137
+      "terminal": 259,
+      "nonterminal": 141
     }
   },
   {
-    "t": 1788532626.301644,
+    "t": 1788551316.142144,
     "run_a": {
       "terminal": 263,
       "nonterminal": 237
     },
     "run_b": {
-      "terminal": 264,
-      "nonterminal": 136
+      "terminal": 262,
+      "nonterminal": 138
     }
   },
   {
-    "t": 1788532626.870924,
+    "t": 1788551316.703014,
     "run_a": {
-      "terminal": 266,
-      "nonterminal": 234
+      "terminal": 264,
+      "nonterminal": 236
     },
     "run_b": {
-      "terminal": 267,
-      "nonterminal": 133
+      "terminal": 266,
+      "nonterminal": 134
     }
   },
   {
-    "t": 1788532627.4126458,
+    "t": 1788551317.250304,
     "run_a": {
+      "terminal": 267,
+      "nonterminal": 233
+    },
+    "run_b": {
       "terminal": 268,
-      "nonterminal": 232
+      "nonterminal": 132
+    }
+  },
+  {
+    "t": 1788551317.80414,
+    "run_a": {
+      "terminal": 270,
+      "nonterminal": 230
     },
     "run_b": {
       "terminal": 270,
@@ -1166,10 +1144,10 @@
     }
   },
   {
-    "t": 1788532627.975234,
+    "t": 1788551318.357889,
     "run_a": {
-      "terminal": 271,
-      "nonterminal": 229
+      "terminal": 273,
+      "nonterminal": 227
     },
     "run_b": {
       "terminal": 273,
@@ -1177,10 +1155,10 @@
     }
   },
   {
-    "t": 1788532628.537936,
+    "t": 1788551318.919518,
     "run_a": {
-      "terminal": 274,
-      "nonterminal": 226
+      "terminal": 276,
+      "nonterminal": 224
     },
     "run_b": {
       "terminal": 275,
@@ -1188,10 +1166,10 @@
     }
   },
   {
-    "t": 1788532629.0820491,
+    "t": 1788551319.4789271,
     "run_a": {
-      "terminal": 276,
-      "nonterminal": 224
+      "terminal": 278,
+      "nonterminal": 222
     },
     "run_b": {
       "terminal": 278,
@@ -1199,10 +1177,10 @@
     }
   },
   {
-    "t": 1788532629.624864,
+    "t": 1788551320.0343602,
     "run_a": {
-      "terminal": 279,
-      "nonterminal": 221
+      "terminal": 281,
+      "nonterminal": 219
     },
     "run_b": {
       "terminal": 280,
@@ -1210,32 +1188,32 @@
     }
   },
   {
-    "t": 1788532630.186783,
+    "t": 1788551320.606066,
     "run_a": {
-      "terminal": 283,
-      "nonterminal": 217
+      "terminal": 282,
+      "nonterminal": 218
     },
     "run_b": {
-      "terminal": 281,
-      "nonterminal": 119
+      "terminal": 284,
+      "nonterminal": 116
     }
   },
   {
-    "t": 1788532630.7397718,
+    "t": 1788551321.1740532,
     "run_a": {
       "terminal": 285,
       "nonterminal": 215
     },
     "run_b": {
-      "terminal": 285,
-      "nonterminal": 115
+      "terminal": 286,
+      "nonterminal": 114
     }
   },
   {
-    "t": 1788532631.296555,
+    "t": 1788551321.748309,
     "run_a": {
-      "terminal": 287,
-      "nonterminal": 213
+      "terminal": 289,
+      "nonterminal": 211
     },
     "run_b": {
       "terminal": 287,
@@ -1243,21 +1221,10 @@
     }
   },
   {
-    "t": 1788532631.860081,
+    "t": 1788551322.3095539,
     "run_a": {
-      "terminal": 290,
-      "nonterminal": 210
-    },
-    "run_b": {
-      "terminal": 289,
-      "nonterminal": 111
-    }
-  },
-  {
-    "t": 1788532632.4152708,
-    "run_a": {
-      "terminal": 294,
-      "nonterminal": 206
+      "terminal": 291,
+      "nonterminal": 209
     },
     "run_b": {
       "terminal": 291,
@@ -1265,21 +1232,21 @@
     }
   },
   {
-    "t": 1788532632.953933,
+    "t": 1788551322.896287,
     "run_a": {
-      "terminal": 295,
-      "nonterminal": 205
+      "terminal": 294,
+      "nonterminal": 206
     },
     "run_b": {
-      "terminal": 295,
-      "nonterminal": 105
+      "terminal": 294,
+      "nonterminal": 106
     }
   },
   {
-    "t": 1788532633.490768,
+    "t": 1788551323.4762251,
     "run_a": {
-      "terminal": 298,
-      "nonterminal": 202
+      "terminal": 296,
+      "nonterminal": 204
     },
     "run_b": {
       "terminal": 297,
@@ -1287,32 +1254,43 @@
     }
   },
   {
-    "t": 1788532634.0407639,
+    "t": 1788551324.0315762,
     "run_a": {
-      "terminal": 301,
-      "nonterminal": 199
+      "terminal": 299,
+      "nonterminal": 201
     },
     "run_b": {
-      "terminal": 299,
-      "nonterminal": 101
+      "terminal": 298,
+      "nonterminal": 102
     }
   },
   {
-    "t": 1788532634.610324,
+    "t": 1788551324.593,
     "run_a": {
       "terminal": 302,
       "nonterminal": 198
     },
     "run_b": {
-      "terminal": 303,
-      "nonterminal": 97
+      "terminal": 301,
+      "nonterminal": 99
     }
   },
   {
-    "t": 1788532635.17434,
+    "t": 1788551325.154471,
     "run_a": {
-      "terminal": 306,
-      "nonterminal": 194
+      "terminal": 303,
+      "nonterminal": 197
+    },
+    "run_b": {
+      "terminal": 304,
+      "nonterminal": 96
+    }
+  },
+  {
+    "t": 1788551325.7253492,
+    "run_a": {
+      "terminal": 308,
+      "nonterminal": 192
     },
     "run_b": {
       "terminal": 305,
@@ -1320,43 +1298,32 @@
     }
   },
   {
-    "t": 1788532635.740766,
+    "t": 1788551326.2897532,
     "run_a": {
-      "terminal": 309,
-      "nonterminal": 191
-    },
-    "run_b": {
-      "terminal": 307,
-      "nonterminal": 93
-    }
-  },
-  {
-    "t": 1788532636.287773,
-    "run_a": {
-      "terminal": 311,
-      "nonterminal": 189
-    },
-    "run_b": {
       "terminal": 310,
-      "nonterminal": 90
-    }
-  },
-  {
-    "t": 1788532636.837585,
-    "run_a": {
-      "terminal": 313,
-      "nonterminal": 187
+      "nonterminal": 190
     },
     "run_b": {
-      "terminal": 313,
-      "nonterminal": 87
+      "terminal": 309,
+      "nonterminal": 91
     }
   },
   {
-    "t": 1788532637.3711722,
+    "t": 1788551326.835149,
     "run_a": {
-      "terminal": 315,
-      "nonterminal": 185
+      "terminal": 312,
+      "nonterminal": 188
+    },
+    "run_b": {
+      "terminal": 312,
+      "nonterminal": 88
+    }
+  },
+  {
+    "t": 1788551327.3896902,
+    "run_a": {
+      "terminal": 314,
+      "nonterminal": 186
     },
     "run_b": {
       "terminal": 316,
@@ -1364,40 +1331,40 @@
     }
   },
   {
-    "t": 1788532637.9113421,
+    "t": 1788551327.973948,
     "run_a": {
-      "terminal": 318,
-      "nonterminal": 182
+      "terminal": 316,
+      "nonterminal": 184
     },
     "run_b": {
-      "terminal": 318,
-      "nonterminal": 82
+      "terminal": 319,
+      "nonterminal": 81
     }
   },
   {
-    "t": 1788532638.45212,
+    "t": 1788551328.541694,
     "run_a": {
       "terminal": 320,
       "nonterminal": 180
     },
     "run_b": {
-      "terminal": 322,
-      "nonterminal": 78
+      "terminal": 320,
+      "nonterminal": 80
     }
   },
   {
-    "t": 1788532638.999836,
+    "t": 1788551329.108535,
     "run_a": {
       "terminal": 323,
       "nonterminal": 177
     },
     "run_b": {
-      "terminal": 324,
-      "nonterminal": 76
+      "terminal": 323,
+      "nonterminal": 77
     }
   },
   {
-    "t": 1788532639.558574,
+    "t": 1788551329.681161,
     "run_a": {
       "terminal": 326,
       "nonterminal": 174
@@ -1408,21 +1375,21 @@
     }
   },
   {
-    "t": 1788532640.106035,
+    "t": 1788551330.232776,
     "run_a": {
-      "terminal": 328,
-      "nonterminal": 172
+      "terminal": 329,
+      "nonterminal": 171
     },
     "run_b": {
-      "terminal": 329,
-      "nonterminal": 71
+      "terminal": 328,
+      "nonterminal": 72
     }
   },
   {
-    "t": 1788532640.6722,
+    "t": 1788551330.783763,
     "run_a": {
-      "terminal": 330,
-      "nonterminal": 170
+      "terminal": 331,
+      "nonterminal": 169
     },
     "run_b": {
       "terminal": 331,
@@ -1430,10 +1397,10 @@
     }
   },
   {
-    "t": 1788532641.232228,
+    "t": 1788551331.332045,
     "run_a": {
-      "terminal": 333,
-      "nonterminal": 167
+      "terminal": 334,
+      "nonterminal": 166
     },
     "run_b": {
       "terminal": 333,
@@ -1441,40 +1408,40 @@
     }
   },
   {
-    "t": 1788532641.804791,
+    "t": 1788551331.881514,
     "run_a": {
-      "terminal": 336,
-      "nonterminal": 164
+      "terminal": 337,
+      "nonterminal": 163
     },
     "run_b": {
-      "terminal": 336,
-      "nonterminal": 64
+      "terminal": 335,
+      "nonterminal": 65
     }
   },
   {
-    "t": 1788532642.371927,
+    "t": 1788551332.4319801,
     "run_a": {
-      "terminal": 338,
-      "nonterminal": 162
+      "terminal": 339,
+      "nonterminal": 161
     },
     "run_b": {
-      "terminal": 340,
-      "nonterminal": 60
+      "terminal": 339,
+      "nonterminal": 61
     }
   },
   {
-    "t": 1788532642.91715,
+    "t": 1788551332.987626,
     "run_a": {
-      "terminal": 341,
-      "nonterminal": 159
-    },
-    "run_b": {
       "terminal": 342,
-      "nonterminal": 58
+      "nonterminal": 158
+    },
+    "run_b": {
+      "terminal": 341,
+      "nonterminal": 59
     }
   },
   {
-    "t": 1788532643.462152,
+    "t": 1788551333.5643551,
     "run_a": {
       "terminal": 344,
       "nonterminal": 156
@@ -1485,7 +1452,7 @@
     }
   },
   {
-    "t": 1788532644.00327,
+    "t": 1788551334.1262028,
     "run_a": {
       "terminal": 347,
       "nonterminal": 153
@@ -1496,21 +1463,21 @@
     }
   },
   {
-    "t": 1788532644.564734,
+    "t": 1788551334.69296,
     "run_a": {
-      "terminal": 349,
-      "nonterminal": 151
+      "terminal": 350,
+      "nonterminal": 150
     },
     "run_b": {
-      "terminal": 349,
-      "nonterminal": 51
+      "terminal": 348,
+      "nonterminal": 52
     }
   },
   {
-    "t": 1788532645.1291919,
+    "t": 1788551335.2643409,
     "run_a": {
-      "terminal": 351,
-      "nonterminal": 149
+      "terminal": 352,
+      "nonterminal": 148
     },
     "run_b": {
       "terminal": 351,
@@ -1518,120 +1485,109 @@
     }
   },
   {
-    "t": 1788532645.670395,
+    "t": 1788551335.840256,
     "run_a": {
       "terminal": 355,
       "nonterminal": 145
     },
     "run_b": {
-      "terminal": 353,
-      "nonterminal": 47
+      "terminal": 354,
+      "nonterminal": 46
     }
   },
   {
-    "t": 1788532646.236421,
+    "t": 1788551336.405486,
     "run_a": {
-      "terminal": 357,
-      "nonterminal": 143
+      "terminal": 356,
+      "nonterminal": 144
     },
     "run_b": {
-      "terminal": 358,
-      "nonterminal": 42
+      "terminal": 359,
+      "nonterminal": 41
     }
   },
   {
-    "t": 1788532646.774646,
+    "t": 1788551336.965217,
     "run_a": {
-      "terminal": 361,
-      "nonterminal": 139
+      "terminal": 362,
+      "nonterminal": 138
     },
     "run_b": {
-      "terminal": 364,
-      "nonterminal": 36
+      "terminal": 366,
+      "nonterminal": 34
     }
   },
   {
-    "t": 1788532647.3298008,
+    "t": 1788551337.526058,
     "run_a": {
-      "terminal": 365,
-      "nonterminal": 135
+      "terminal": 367,
+      "nonterminal": 133
     },
     "run_b": {
-      "terminal": 368,
-      "nonterminal": 32
+      "terminal": 370,
+      "nonterminal": 30
     }
   },
   {
-    "t": 1788532647.877663,
+    "t": 1788551338.091108,
     "run_a": {
-      "terminal": 369,
-      "nonterminal": 131
+      "terminal": 371,
+      "nonterminal": 129
     },
     "run_b": {
-      "terminal": 373,
-      "nonterminal": 27
+      "terminal": 374,
+      "nonterminal": 26
     }
   },
   {
-    "t": 1788532648.433729,
+    "t": 1788551338.649457,
     "run_a": {
-      "terminal": 375,
-      "nonterminal": 125
+      "terminal": 377,
+      "nonterminal": 123
     },
     "run_b": {
-      "terminal": 379,
-      "nonterminal": 21
-    }
-  },
-  {
-    "t": 1788532648.9792,
-    "run_a": {
       "terminal": 380,
-      "nonterminal": 120
-    },
-    "run_b": {
-      "terminal": 383,
-      "nonterminal": 17
+      "nonterminal": 20
     }
   },
   {
-    "t": 1788532649.532258,
+    "t": 1788551339.2055712,
     "run_a": {
+      "terminal": 382,
+      "nonterminal": 118
+    },
+    "run_b": {
       "terminal": 385,
-      "nonterminal": 115
-    },
-    "run_b": {
+      "nonterminal": 15
+    }
+  },
+  {
+    "t": 1788551339.7521439,
+    "run_a": {
       "terminal": 388,
-      "nonterminal": 12
-    }
-  },
-  {
-    "t": 1788532650.089358,
-    "run_a": {
+      "nonterminal": 112
+    },
+    "run_b": {
       "terminal": 391,
-      "nonterminal": 109
-    },
-    "run_b": {
-      "terminal": 394,
-      "nonterminal": 6
+      "nonterminal": 9
     }
   },
   {
-    "t": 1788532650.643409,
+    "t": 1788551340.301499,
     "run_a": {
-      "terminal": 395,
-      "nonterminal": 105
+      "terminal": 393,
+      "nonterminal": 107
     },
     "run_b": {
-      "terminal": 399,
-      "nonterminal": 1
+      "terminal": 396,
+      "nonterminal": 4
     }
   },
   {
-    "t": 1788532651.199788,
+    "t": 1788551340.864102,
     "run_a": {
-      "terminal": 402,
-      "nonterminal": 98
+      "terminal": 398,
+      "nonterminal": 102
     },
     "run_b": {
       "terminal": 400,
@@ -1639,10 +1595,10 @@
     }
   },
   {
-    "t": 1788532651.753487,
+    "t": 1788551341.419412,
     "run_a": {
-      "terminal": 405,
-      "nonterminal": 95
+      "terminal": 404,
+      "nonterminal": 96
     },
     "run_b": {
       "terminal": 400,
@@ -1650,10 +1606,10 @@
     }
   },
   {
-    "t": 1788532652.332458,
+    "t": 1788551341.973163,
     "run_a": {
-      "terminal": 411,
-      "nonterminal": 89
+      "terminal": 409,
+      "nonterminal": 91
     },
     "run_b": {
       "terminal": 400,
@@ -1661,10 +1617,10 @@
     }
   },
   {
-    "t": 1788532652.863778,
+    "t": 1788551342.529423,
     "run_a": {
-      "terminal": 417,
-      "nonterminal": 83
+      "terminal": 414,
+      "nonterminal": 86
     },
     "run_b": {
       "terminal": 400,
@@ -1672,10 +1628,10 @@
     }
   },
   {
-    "t": 1788532653.413155,
+    "t": 1788551343.088057,
     "run_a": {
-      "terminal": 422,
-      "nonterminal": 78
+      "terminal": 419,
+      "nonterminal": 81
     },
     "run_b": {
       "terminal": 400,
@@ -1683,10 +1639,10 @@
     }
   },
   {
-    "t": 1788532653.976531,
+    "t": 1788551343.6568298,
     "run_a": {
-      "terminal": 428,
-      "nonterminal": 72
+      "terminal": 424,
+      "nonterminal": 76
     },
     "run_b": {
       "terminal": 400,
@@ -1694,10 +1650,10 @@
     }
   },
   {
-    "t": 1788532654.534355,
+    "t": 1788551344.230856,
     "run_a": {
-      "terminal": 433,
-      "nonterminal": 67
+      "terminal": 429,
+      "nonterminal": 71
     },
     "run_b": {
       "terminal": 400,
@@ -1705,10 +1661,10 @@
     }
   },
   {
-    "t": 1788532655.092427,
+    "t": 1788551344.795847,
     "run_a": {
-      "terminal": 436,
-      "nonterminal": 64
+      "terminal": 434,
+      "nonterminal": 66
     },
     "run_b": {
       "terminal": 400,
@@ -1716,10 +1672,10 @@
     }
   },
   {
-    "t": 1788532655.649236,
+    "t": 1788551345.3586502,
     "run_a": {
-      "terminal": 443,
-      "nonterminal": 57
+      "terminal": 440,
+      "nonterminal": 60
     },
     "run_b": {
       "terminal": 400,
@@ -1727,10 +1683,10 @@
     }
   },
   {
-    "t": 1788532656.183145,
+    "t": 1788551345.915314,
     "run_a": {
-      "terminal": 498,
-      "nonterminal": 2
+      "terminal": 452,
+      "nonterminal": 48
     },
     "run_b": {
       "terminal": 400,
@@ -1738,18 +1694,7 @@
     }
   },
   {
-    "t": 1788532656.7446132,
-    "run_a": {
-      "terminal": 499,
-      "nonterminal": 1
-    },
-    "run_b": {
-      "terminal": 400,
-      "nonterminal": 0
-    }
-  },
-  {
-    "t": 1788532657.2999492,
+    "t": 1788551346.4743261,
     "run_a": {
       "terminal": 500,
       "nonterminal": 0
